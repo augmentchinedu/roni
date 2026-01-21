@@ -18,7 +18,57 @@ export async function create(project) {
   }
 
   // Create project directory
-  await fs.mkdir(projectDir);
+  await fs.mkdir(projectDir, { recursive: true });
   console.log(`Created project: ${project.id}`);
-}
 
+  // Scripts to inject
+  const scripts = {
+    dev: "vite",
+    build: "vite build",
+  };
+
+  // package.json content
+  const packageJson = {
+    name: project.id,
+    private: true,
+    version: "0.0.0",
+    type: "module",
+    scripts,
+  };
+
+  // Write package.json
+  const packageJsonPath = path.join(projectDir, "package.json");
+  await fs.writeFile(
+    packageJsonPath,
+    JSON.stringify(packageJson, null, 2),
+    "utf-8"
+  );
+  console.log(`Created package.json for ${project.id}`);
+
+  // --- Create vite.config.js if it doesn't exist ---
+  const viteConfigPath = path.join(projectDir, "vite.config.js");
+
+  try {
+    await fs.access(viteConfigPath);
+  } catch {
+    // File does not exist → create it
+    const viteConfigContent = `import { defineConfig, mergeConfig } from "vite";
+import rootConfig from "../../vite.config.js";
+import path from "path";
+
+export default mergeConfig(
+  rootConfig,
+  defineConfig({
+    root: path.resolve("../../"),
+    server: {
+      port: Number(process.env.PORT),
+      strictPort: true
+    }
+  })
+);
+`;
+
+    await fs.writeFile(viteConfigPath, viteConfigContent, "utf-8");
+    console.log(`Created vite.config.js for ${project.id}`);
+  }
+}
