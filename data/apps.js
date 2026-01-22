@@ -15,4 +15,8 @@ export const apps = [
     id: "handyfix",
     name: "Handy Fix",
   },
+  {
+    id: "fairpay",
+    name: "Fair Pay",
+  },
 ];
