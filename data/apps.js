@@ -7,4 +7,12 @@ export const apps = [
     id: "zendaa",
     name: "Zendaa",
   },
+  {
+    id: "handyman",
+    name: "Handy Man",
+  },
+  {
+    id: "handyfix",
+    name: "Handy Fix",
+  },
 ];
