@@ -1,6 +1,14 @@
 export const softwares = [
   {
-    id: "property-investment",
-    name: "Property Investment",
+    id: "dotproperty",
+    name: "Property",
+  },
+  {
+    id: "dotstore",
+    name: "Store",
+  },
+  {
+    id: "dotpro",
+    name: "Professional",
   },
 ];

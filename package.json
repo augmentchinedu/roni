@@ -7,13 +7,14 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "NODE_ENV=development node core/index.js ",
-    "build": "NODE_ENV=production node core/index.js",
-    "simulation": "NODE_ENV=simulation node core/index.js",
-    "upload": "node core/index.js upload"
-
+    "dev": "NODE_ENV=development node --import dotenv/config core/index.js ",
+    "build": "NODE_ENV=production node --import dotenv/config core/index.js",
+    "simulation": "NODE_ENV=simulation node --import dotenv/config core/index.js",
+    "upload": "node --import dotenv/config core/index.js upload"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.18.0",
+    "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "vue": "^3.5.24",
     "vue-router": "^4.6.4"

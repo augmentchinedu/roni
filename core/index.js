@@ -4,7 +4,7 @@ import {
   startDev,
   startBuild,
   startSimulation,
-  uploadToStorage,
+  startUpload, create
 } from "../scripts/index.js";
 
 const projects = [...apps, ...games, ...softwares];
@@ -12,7 +12,9 @@ const projects = [...apps, ...games, ...softwares];
 const env = process.env.NODE_ENV;
 const mode = process.argv[2];
 
+await Promise.all(projects.map((project) => create(project)));
+
 if (env === "development") startDev(projects);
 if (env === "production") startBuild(projects);
 if (env === "simulation") startSimulation(projects);
-if (mode == "upload") uploadToStorage();
+if (mode == "upload") startUpload(projects);
