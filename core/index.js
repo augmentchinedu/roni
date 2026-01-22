@@ -18,3 +18,5 @@ if (env === "development") startDev(projects);
 if (env === "production") startBuild(projects);
 if (env === "simulation") startSimulation(projects);
 if (mode == "upload") startUpload(projects);
+
+
