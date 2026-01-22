@@ -1,11 +1,14 @@
-import { createWebHistory, createRouter } from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 
-const routes = [
-  { path: "/", component: () => import("../pages/Home.vue") },
-  { path: "/about", component: () => import("../pages/404.vue") },
-];
+export async function createAppRouter(packageName) {
+  console.log(packageName);
+  const routesModule = await import(
+    /* @vite-ignore */
+    `../../packages/${packageName}/src/routes.js`
+  );
 
-export default createRouter({
-  history: createWebHistory(),
-  routes,
-});
+  return createRouter({
+    history: createWebHistory(),
+    routes: routesModule.default,
+  });
+}

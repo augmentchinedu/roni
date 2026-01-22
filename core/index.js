@@ -1,18 +1,14 @@
-// /core/index.js
+import { spawn } from "child_process";
 
-import { apps, games, softwares } from "../data";
-import { create } from "../scripts";
+import { apps, games, softwares } from "../data/index.js";
 
-export async function init() {
-  // <-- make init async
-  console.info("Running The Great Unknown - Development");
-  console.info(`Games: ${games.length}`);
-  console.info(`Apps: ${apps.length}`);
-  console.info(`Softwares: ${softwares.length}`);
+import { startDev, startBuild } from "../scripts/index.js";
 
-  const projects = [...apps, ...games, ...softwares];
+const projects = [...apps, ...games, ...softwares];
 
-  await Promise.all(projects.map((project) => create(project)));
+const mode = process.env.NODE_ENV;
 
-  console.info("All projects have been created.");
-}
+console.log(mode);
+
+if (mode === "development") startDev(projects);
+else startBuild(projects);

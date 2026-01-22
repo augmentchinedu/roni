@@ -1,3 +1,3 @@
-export { apps } from "./apps";
-export { games } from "./games";
-export { softwares } from "./softwares";
+export { apps } from "./apps.js";
+export { games } from "./games.js";
+export { softwares } from "./softwares.js";

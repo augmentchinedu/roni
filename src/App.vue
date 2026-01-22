@@ -1,3 +1,20 @@
 <template>
-  <RouterView />
+  <h1>Welcome to {{ appName }}!</h1>
 </template>
+
+<script>
+export default {
+  data() {
+    return {
+      appName: __APP_NAME__,
+    };
+  },
+};
+</script>
+
+<style>
+h1 {
+  color: #4caf50;
+  font-family: sans-serif;
+}
+</style>
