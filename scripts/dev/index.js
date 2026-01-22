@@ -6,7 +6,7 @@ export function startDev(projects) {
   projects.forEach((project, i) => {
     const port = BASE_PORT + i;
     const child = spawn("vite", [], {
-      env: { ...process.env, PORT: port, APP_NAME: project.id },
+      env: { ...process.env, PORT: port, PROJECT: JSON.stringify(project) },
       stdio: "inherit",
     });
 

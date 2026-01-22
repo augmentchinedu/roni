@@ -15,7 +15,7 @@ export function startBuild(projects) {
       env: {
         ...process.env,
         NODE_ENV: "production",
-        PROJECT: project.id, // used in vite.config.js
+        PROJECT: JSON.stringify(project),
       },
     });
 

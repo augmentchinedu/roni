@@ -1,15 +1,18 @@
-import { spawn } from "child_process";
-
 import { apps, games, softwares } from "../data/index.js";
 
-import { startDev, startBuild, startSimulation } from "../scripts/index.js";
+import {
+  startDev,
+  startBuild,
+  startSimulation,
+  uploadToStorage,
+} from "../scripts/index.js";
 
 const projects = [...apps, ...games, ...softwares];
 
-const mode = process.env.NODE_ENV;
+const env = process.env.NODE_ENV;
+const mode = process.argv[2];
 
-console.log(mode);
-
-if (mode === "development") startDev(projects);
-if (mode === "production") startBuild(projects);
-if (mode === "simulation") startSimulation(projects);
+if (env === "development") startDev(projects);
+if (env === "production") startBuild(projects);
+if (env === "simulation") startSimulation(projects);
+if (mode == "upload") uploadToStorage();

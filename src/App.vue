@@ -6,7 +6,7 @@
 export default {
   data() {
     return {
-      appName: __APP_NAME__,
+      appName: PROJECT.id,
     };
   },
 };
