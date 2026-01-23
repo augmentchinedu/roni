@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
 
+import { isToAuthenticate } from "./scripts";
+
 const DIST_DIR = path.resolve("clients");
 
 // Use env variable PROJECT to set output folder
@@ -14,6 +16,7 @@ export default defineConfig(({ mode }) => ({
   root: path.resolve("./"), // root is project root
   define: {
     PROJECT: JSON.parse(process.env.PROJECT) || { id: "default-app" },
+    AUTH: isToAuthenticate(),
   },
   server: {
     strictPort: true,
