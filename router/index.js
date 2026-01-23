@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import routes from "./routes.js";
-import { authenticate, analytics } from "../../functions/guard.js";
+import { authenticate, analytics } from "../functions/guard.js";
 
 const isToAuthenticate = AUTH ? AUTH == true : false;
 
