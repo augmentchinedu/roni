@@ -1,0 +1,22 @@
+{
+  "routes": [
+    {
+      "name": "home",
+      "path": "/",
+      "component": "Home",
+      "packages": ["the-great-unknown", "zendaa"]
+    },
+    {
+      "name": "login",
+      "path": "/login",
+      "component": "Login",
+      "packages": ["zendaa"]
+    },
+    {
+      "name": "dashboard",
+      "path": "/dashboard",
+      "component": "Dashboard",
+      "packages": ["the-great-unknown"]
+    }
+  ]
+}

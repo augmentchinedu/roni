@@ -19,4 +19,8 @@ export const apps = [
     id: "fairpay",
     name: "Fair Pay",
   },
+  {
+    id: "krane",
+    name: "Genesis Krane",
+  },
 ];

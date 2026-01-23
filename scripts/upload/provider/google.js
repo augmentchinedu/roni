@@ -29,7 +29,6 @@ export async function uploadDirectory(name) {
 export async function deleteProjectPrefix(projectName) {
   const prefix = `clients/${projectName}/`;
 
-  console.log(`🗑️ Removing gs://${process.env.GCS_BUCKET}/${prefix}`);
 
   await bucket.deleteFiles({
     prefix,
