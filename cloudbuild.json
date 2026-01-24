@@ -20,7 +20,7 @@
       "entrypoint": "bash",
       "args": [
         "-c",
-        "gsutil -m rsync -r -d ./clients gs://great-unknown.appspot.com"
+        "gsutil -m rsync -r -d ./clients gs://great-unknown.appspot.com/clients"
       ]
     }
   ],
