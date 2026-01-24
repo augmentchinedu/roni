@@ -26,3 +26,4 @@ dist-ssr
 clients
 server
 .env
+data/routes.json

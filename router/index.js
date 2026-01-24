@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import routes from "./routes.js";
-import { authenticate, analytics } from "../functions/guard.js";
+import { initialize, authenticate, analytics } from "../functions/guard.js";
 
 const isToAuthenticate = AUTH ? AUTH == true : false;
 
@@ -10,10 +10,11 @@ const router = createRouter({
 });
 
 router.beforeEach(() => {
-  console.log(isToAuthenticate);
+  initialize();
 
   if (isToAuthenticate) authenticate();
-  analytics()
+
+  analytics();
 });
 
 export default router;
