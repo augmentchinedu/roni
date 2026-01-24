@@ -3,11 +3,12 @@ import path from "path";
 
 const PACKAGES_DIR = path.resolve("packages");
 const PAGES_FILE = path.resolve("router/pages.js");
+const GLOBAL_PAGES_DIR = path.resolve("pages"); // folder with global pages (Admin, NotFound, etc.)
 
 /* ---------------- Helpers ---------------- */
 
 function safeKey(key) {
-  return /[-\s]/.test(key) ? `"${key}"` : key;
+  return /[-\s]/.test(key) || key === "*" ? `"${key}"` : key;
 }
 
 function arrowImport(importPath) {
@@ -32,7 +33,8 @@ function objectToString(obj, indent = 2) {
 
 /* ---------------- Walk pages ---------------- */
 
-async function walkPages(dir, relPath = [], tree = {}) {
+async function walkPages(dir, baseDir = dir) {
+  const tree = {};
   const entries = await fs.readdir(dir, { withFileTypes: true });
 
   for (const e of entries) {
@@ -40,8 +42,7 @@ async function walkPages(dir, relPath = [], tree = {}) {
     const name = path.basename(e.name, ".vue");
 
     if (e.isDirectory()) {
-      tree[name] = {};
-      await walkPages(full, [...relPath, e.name], tree[name]);
+      tree[name] = await walkPages(full, baseDir);
     }
 
     if (e.isFile() && e.name.endsWith(".vue")) {
@@ -61,14 +62,22 @@ export async function generatePages() {
   const packages = await fs.readdir(PACKAGES_DIR);
   const pagesRegistry = {};
 
+  // Add global pages under "*"
+  try {
+    await fs.access(GLOBAL_PAGES_DIR);
+    pagesRegistry["*"] = await walkPages(GLOBAL_PAGES_DIR, GLOBAL_PAGES_DIR);
+  } catch {
+    pagesRegistry["*"] = {};
+  }
+
+  // Add package pages
   for (const pkg of packages) {
     const pagesDir = path.join(PACKAGES_DIR, pkg, "pages");
     try {
       await fs.access(pagesDir);
-
-      pagesRegistry[pkg] = await walkPages(pagesDir);
+      pagesRegistry[pkg] = await walkPages(pagesDir, pagesDir);
     } catch {
-      // no pages folder → skip
+      // skip if package has no pages folder
     }
   }
 
@@ -78,5 +87,7 @@ export async function generatePages() {
 
   await fs.writeFile(PAGES_FILE, content);
 
-  console.info(`📦 router/pages.js generated (${packages.length} packages)`);
+  console.info(
+    `📦 router/pages.js generated with packages (${packages.length}) + global pages`
+  );
 }
