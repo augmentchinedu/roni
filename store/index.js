@@ -1,9 +1,12 @@
 import { reactive } from "vue";
 import { defineStore } from "pinia";
 
+const { id, name } = PROJECT;
+
 export const useStore = defineStore("store", () => {
   const app = reactive({
-    name: "App Name",
+    id,
+    name,
   });
 
   const user = reactive({});
