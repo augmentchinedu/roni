@@ -12,7 +12,7 @@ const router = createRouter({
 router.beforeEach(() => {
   initialize();
 
-  if (isToAuthenticate) authenticate();
+  if (!isToAuthenticate) authenticate();
 
   analytics();
 });

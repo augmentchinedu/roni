@@ -37,12 +37,23 @@ function buildProjectRoutes(projectId) {
 // ---------------- Root redirect ----------------
 function resolveRootRedirect(routes) {
   const candidates = ["/splash", "/dashboard", "/home"];
-  for (const path of candidates) {
-    if (routes.find((r) => r.path === path || r.path === "/"))
-      return path === "/home" ? "/" : path;
+
+  for (const candidate of candidates) {
+    const match = routes.find(
+      (r) =>
+        r.path.toLowerCase() === candidate.toLowerCase() || // exact match
+        (candidate === "/home" && r.name.toLowerCase() === "home") // Home by name
+    );
+
+    if (match) return match.path; // return actual route path
   }
-  return routes.length ? routes[0].path : "/";
+
+  // Fallback: first non-root route
+  const first = routes.find((r) => r.path !== "/");
+  return first ? first.path : "/"; 
 }
+
+
 
 // ---------------- Build routes ----------------
 
