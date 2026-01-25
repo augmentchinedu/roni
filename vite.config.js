@@ -1,6 +1,7 @@
+import path from "path";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import path from "path";
+import UnoCSS from "unocss/vite";
 
 import { isToAuthenticate } from "./scripts";
 
@@ -12,7 +13,7 @@ const outDir = process.env.PROJECT
   : path.join(DIST_DIR, "default");
 
 export default defineConfig(({ mode }) => ({
-  plugins: [vue()],
+  plugins: [vue(), UnoCSS()],
   root: path.resolve("."), // root is project root
   define: {
     PROJECT: JSON.parse(process.env.PROJECT) || { id: "default-app" },
