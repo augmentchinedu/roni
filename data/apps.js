@@ -23,4 +23,8 @@ export const apps = [
     id: "krane",
     name: "Genesis Krane",
   },
+  {
+    id: "spendly",
+    name: "Express Tracker",
+  },
 ];

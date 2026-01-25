@@ -21,6 +21,9 @@ export default {
       SignUp: () => import("./../packages/dotstore/pages/auth/SignUp.vue"),
     },
   },
+  spendly: {
+    Home: () => import("./../packages/spendly/pages/Home.vue"),
+  },
   "the-great-unknown": {
     Home: () => import("./../packages/the-great-unknown/pages/Home.vue"),
   },

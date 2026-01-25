@@ -27,3 +27,4 @@ clients/
 server
 .env
 data/routes.json
+clients/** */.html

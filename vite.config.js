@@ -13,7 +13,7 @@ const outDir = process.env.PROJECT
 
 export default defineConfig(({ mode }) => ({
   plugins: [vue()],
-  root: path.resolve("./"), // root is project root
+  root: path.resolve("."), // root is project root
   define: {
     PROJECT: JSON.parse(process.env.PROJECT) || { id: "default-app" },
     AUTH: isToAuthenticate(),
@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => ({
   },
   resolve: {
     alias: {
-      "@": path.resolve("src"),
+      "@": path.resolve("."),
     },
   },
   publicDir: "public",
