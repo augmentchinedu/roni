@@ -24,7 +24,6 @@ dist-ssr
 *.sw?
 
 clients/
-server
 .env
 data/routes.json
 clients/** */.html
