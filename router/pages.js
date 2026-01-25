@@ -15,6 +15,7 @@ export default {
     },
   },
   dotstore: {
+    Explore: () => import("./../packages/dotstore/pages/Explore.vue"),
     Home: () => import("./../packages/dotstore/pages/Home.vue"),
     auth: {
       SignIn: () => import("./../packages/dotstore/pages/auth/SignIn.vue"),
