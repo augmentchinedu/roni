@@ -2,7 +2,7 @@
 import { GraphQLClient, gql } from "graphql-request";
 
 // TGU apps use the same client endpoint
-export const client = new GraphQLClient("http://localhost:3000/graphql", {
+export const client = new GraphQLClient(import.meta.env.VITE_GRAPHQL_ENDPOINT, {
   credentials: "include", // send cookies for auth if needed
   headers: {
     Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
