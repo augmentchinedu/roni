@@ -11,7 +11,6 @@ export function startDev(projects) {
         PORT: port,
         NODE_ENV: "development",
         PROJECT: JSON.stringify(project),
-        VITE_GRAPHQL_ENDPOINT: process.env.DEVELOPMENT_GRAPHQL_ENDPOINT,
       },
       stdio: "inherit",
     });

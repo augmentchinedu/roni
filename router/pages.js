@@ -22,6 +22,9 @@ export default {
       SignUp: () => import("./../packages/dotstore/pages/auth/SignUp.vue"),
     },
   },
+  finance: {
+    Home: () => import("./../packages/finance/pages/Home.vue"),
+  },
   "the-great-unknown": {
     Home: () => import("./../packages/the-great-unknown/pages/Home.vue"),
   },
