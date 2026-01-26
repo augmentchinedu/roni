@@ -25,10 +25,4 @@ export default {
   "the-great-unknown": {
     Home: () => import("./../packages/the-great-unknown/pages/Home.vue"),
   },
-  zendaa: {
-    Home: () => import("./../packages/zendaa/pages/Home.vue"),
-    auth: {
-      SignUp: () => import("./../packages/zendaa/pages/auth/SignUp.vue"),
-    },
-  },
 };

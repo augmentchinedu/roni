@@ -4,10 +4,6 @@ export const apps = [
     name: "The Great Unknown",
   },
   {
-    id: "zendaa",
-    name: "Zendaa",
-  },
-  {
     id: "handyman",
     name: "Handy Man",
   },
