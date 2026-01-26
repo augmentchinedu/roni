@@ -16,6 +16,12 @@ export default defineConfig(() => ({
   define: {
     PROJECT: JSON.parse(process.env.PROJECT) || { id: "default-app" },
     AUTH: isToAuthenticate(),
+    "import.meta.env.PRODUCTION_GRAPHQL_ENDPOINT": JSON.stringify(
+      process.env.PRODUCTION_GRAPHQL_ENDPOINT
+    ),
+    "import.meta.env.DEVELOPMENT_GRAPHQL_ENDPOINT": JSON.stringify(
+      process.env.DEVELOPMENT_GRAPHQL_ENDPOINT
+    ),
   },
   server: {
     strictPort: true,
