@@ -1,5 +1,7 @@
+// stores/useStore.js
 import { reactive } from "vue";
 import { defineStore } from "pinia";
+import { client, gql } from "../gql/index.js";
 
 export const useStore = defineStore("store", () => {
   const { id, name } = PROJECT;
@@ -12,28 +14,35 @@ export const useStore = defineStore("store", () => {
 
   const user = reactive({});
 
-  function initialize() {
+  async function initialize() {
     if (app.isInitialized) return;
+
     console.log("Initializing...");
 
-    const data = {
-      name: "velar",
-      explore: [
-        { id: "womens-suit", name: "Women's Suit" },
-        { id: "designer-collection", name: "Designer Collection" },
-        { id: "spring-collection", name: "Spring Collection" },
-        { id: "new-arrivals", name: "New Arrivals" },
-        { id: "top-trends", name: "Top Trends" },
-      ],
-    };
+    const query = gql`
+      query GetClient($username: String!) {
+        client(username: $username) {
+          id
+          username
+          name
+        }
+      }
+    `;
 
-    Object.assign(app, data);
+    const variables = { username: "velar" };
 
-    console.log(app);
+    try {
+      const data = await client.request(query, variables);
+      console.log("GraphQL response:", data);
 
-    app.isInitialized = true;
+      // Merge client data into app
+      Object.assign(app, data.client);
 
-    console.info("Initialized");
+      app.isInitialized = true;
+      console.info("Initialized via GraphQL client");
+    } catch (err) {
+      console.error("GraphQL error:", err);
+    }
   }
 
   return { app, user, initialize };

@@ -6,7 +6,12 @@ export function startDev(projects) {
   projects.forEach((project, i) => {
     const port = BASE_PORT + i;
     const child = spawn("vite", [], {
-      env: { ...process.env, PORT: port, PROJECT: JSON.stringify(project) },
+      env: {
+        ...process.env,
+        PORT: port,
+        PROJECT: JSON.stringify(project),
+        VITE_GRAPHQL_ENDPOINT: process.env.DEVELOPMENT_GRAPHQL_ENDPOINT,
+      },
       stdio: "inherit",
     });
 
