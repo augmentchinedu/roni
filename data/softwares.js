@@ -14,4 +14,9 @@ export const softwares = [
     name: "Professional",
     username: "creatyve3d",
   },
+  {
+    id: "expense-tracker",
+    name: "Expense Tracker",
+    username: "spendly",
+  },
 ];
