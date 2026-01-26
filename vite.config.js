@@ -20,18 +20,6 @@ export default defineConfig(() => ({
   server: {
     strictPort: true,
     port: Number(process.env.PORT) || 5173,
-    proxy: {
-      "/graphql": {
-        target: "http://localhost:3000",
-        changeOrigin: true,
-        secure: false,
-        configure: (proxy) => {
-          proxy.on("proxyReq", (proxyReq, req) => {
-            console.log("Proxying GraphQL request:", req.method, req.url);
-          });
-        },
-      },
-    },
   },
   resolve: {
     alias: {

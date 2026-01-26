@@ -26,6 +26,8 @@ export function startBuild(projects) {
           ...process.env,
           NODE_ENV: "production",
           PROJECT: JSON.stringify(project),
+          VITE_GRAPHQL_ENDPOINT: process.env.PRODUCTION_GRAPHQL_ENDPOINT,
+
         },
       });
 

@@ -9,6 +9,7 @@ export function startDev(projects) {
       env: {
         ...process.env,
         PORT: port,
+        NODE_ENV: "development",
         PROJECT: JSON.stringify(project),
         VITE_GRAPHQL_ENDPOINT: process.env.DEVELOPMENT_GRAPHQL_ENDPOINT,
       },
