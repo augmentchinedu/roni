@@ -20,18 +20,17 @@ export const useStore = defineStore("store", () => {
 
     console.log("Initializing...", username);
 
-    const isDev =
-      import.meta.env.MODE === "development" ||
-      window.location.hostname === "localhost" ||
-      window.location.hostname.includes("cloudworkstations.dev");
-
     const variables = {
       username: import.meta.env.VITE_DEVELOPMENT_KEY ? username : null,
+      key:
+        import.meta.env.MODE === "development"
+          ? import.meta.env.VITE_DEVELOPMENT_KEY
+          : null,
     };
 
     const query = gql`
-      query GetClient($username: String) {
-        client(username: $username) {
+      query GetClient($username: String, $key: String) {
+        client(username: $username, key: $key) {
           id
           name
           username
@@ -39,6 +38,7 @@ export const useStore = defineStore("store", () => {
       }
     `;
 
+    console.log(variables);
     try {
       const data = await client.request(query, variables);
       console.log("GraphQL response:", data);
