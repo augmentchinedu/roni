@@ -28,6 +28,9 @@ export default {
       SignUp: () => import("./../packages/dotstore/pages/auth/SignUp.vue"),
     },
   },
+  "expense-tracker": {
+    Home: () => import("./../packages/expense-tracker/pages/Home.vue"),
+  },
   finance: {
     Home: () => import("./../packages/finance/pages/Home.vue"),
   },

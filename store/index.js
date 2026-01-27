@@ -18,7 +18,7 @@ export const useStore = defineStore("store", () => {
   async function initialize() {
     if (app.isInitialized) return;
 
-    console.log("Initializing...", username);
+    console.log("Initializing...");
 
     const variables = {
       username: import.meta.env.VITE_DEVELOPMENT_KEY ? username : null,
@@ -41,12 +41,11 @@ export const useStore = defineStore("store", () => {
 
     try {
       const data = await client.request(query, variables);
-      console.log("GraphQL response:", data);
 
       // Merge client data into app
       Object.assign(app, data.client);
-
       app.isInitialized = true;
+
       console.info("Initialized via GraphQL client", app);
     } catch (err) {
       console.error("GraphQL error:", err);

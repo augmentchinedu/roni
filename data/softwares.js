@@ -20,6 +20,11 @@ export const softwares = [
     username: "spendly",
   },
   {
+    package: "payment-splitter",
+    name: "Payment Splitter",
+    username: "fairpay",
+  },
+  {
     package: "finance",
     name: "Finance",
     username: "spendly",

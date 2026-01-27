@@ -12,10 +12,6 @@ export const apps = [
     name: "Handy Fix",
   },
   {
-    package: "fairpay",
-    name: "Fair Pay",
-  },
-  {
     package: "krane",
     name: "Genesis Krane",
   },

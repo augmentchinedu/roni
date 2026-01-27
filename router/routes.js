@@ -50,10 +50,8 @@ function resolveRootRedirect(routes) {
 
   // Fallback: first non-root route
   const first = routes.find((r) => r.path !== "/");
-  return first ? first.path : "/"; 
+  return first ? first.path : "/";
 }
-
-
 
 // ---------------- Build routes ----------------
 
@@ -101,7 +99,7 @@ const routes = [
   },
 ];
 
-console.log("🔁 Root redirect →", rootRedirect);
-console.log("📦 Routes:", routes);
+// console.log("🔁 Root redirect →", rootRedirect);
+// console.log("📦 Routes:", routes);
 
 export default routes;
