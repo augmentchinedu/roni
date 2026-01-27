@@ -51,6 +51,11 @@ export default {
     Settings: () => import("./../packages/finance/pages/Settings.vue"),
     Wallet: () => import("./../packages/finance/pages/Wallet.vue"),
   },
+  krane: {
+    Apps: () => import("./../packages/krane/pages/Apps.vue"),
+    Games: () => import("./../packages/krane/pages/Games.vue"),
+    Settings: () => import("./../packages/krane/pages/Settings.vue"),
+  },
   "payment-splitter": {
     Home: () => import("./../packages/payment-splitter/pages/Home.vue"),
     Settings: () => import("./../packages/payment-splitter/pages/Settings.vue"),
