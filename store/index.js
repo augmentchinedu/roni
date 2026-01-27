@@ -4,11 +4,12 @@ import { defineStore } from "pinia";
 import { client, gql } from "../gql/index.js";
 
 export const useStore = defineStore("store", () => {
-  const { id, name } = PROJECT;
+  const { name, username, package: pkg } = PROJECT;
 
   const app = reactive({
-    id,
+    id: null,
     name,
+    username,
     isInitialized: false,
   });
 
@@ -17,19 +18,26 @@ export const useStore = defineStore("store", () => {
   async function initialize() {
     if (app.isInitialized) return;
 
-    console.log("Initializing...");
+    console.log("Initializing...", username);
+
+    const isDev =
+      import.meta.env.MODE === "development" ||
+      window.location.hostname === "localhost" ||
+      window.location.hostname.includes("cloudworkstations.dev");
+
+    const variables = {
+      username: import.meta.env.VITE_DEVELOPMENT_KEY ? username : null,
+    };
 
     const query = gql`
-      query GetClient($username: String!) {
+      query GetClient($username: String) {
         client(username: $username) {
           id
-          username
           name
+          username
         }
       }
     `;
-
-    const variables = { username: "velar" };
 
     try {
       const data = await client.request(query, variables);

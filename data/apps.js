@@ -1,22 +1,22 @@
 export const apps = [
   {
-    id: "the-great-unknown",
+    package: "the-great-unknown",
     name: "The Great Unknown",
   },
   {
-    id: "handyman",
+    package: "handyman",
     name: "Handy Man",
   },
   {
-    id: "handyfix",
+    package: "handyfix",
     name: "Handy Fix",
   },
   {
-    id: "fairpay",
+    package: "fairpay",
     name: "Fair Pay",
   },
   {
-    id: "krane",
+    package: "krane",
     name: "Genesis Krane",
   },
 ];

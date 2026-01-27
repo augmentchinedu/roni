@@ -16,10 +16,10 @@ export function startDev(projects) {
     });
 
     child.on("close", (code) => {
-      console.log(`${project.id} exited with code ${code}`);
+      console.log(`${project.package} exited with code ${code}`);
     });
 
-    console.log(`🚀 Starting ${project.id} on http://localhost:${port}`);
+    console.log(`🚀 Starting ${project.package} on http://localhost:${port}`);
   });
 
   console.info("All projects have been created and dev servers started.");

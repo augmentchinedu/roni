@@ -7,14 +7,14 @@ import { isToAuthenticate } from "./scripts";
 
 const DIST_DIR = path.resolve("clients");
 const outDir = process.env.PROJECT
-  ? path.join(DIST_DIR, JSON.parse(process.env.PROJECT).id)
+  ? path.join(DIST_DIR, JSON.parse(process.env.PROJECT).package)
   : path.join(DIST_DIR, "default");
 
 export default defineConfig(() => ({
   plugins: [vue(), UnoCSS()],
   root: path.resolve("."),
   define: {
-    PROJECT: JSON.parse(process.env.PROJECT) || { id: "default-app" },
+    PROJECT: JSON.parse(process.env.PROJECT) || { package: "default-app" },
     AUTH: isToAuthenticate(),
     "import.meta.env.PRODUCTION_GRAPHQL_ENDPOINT": JSON.stringify(
       process.env.PRODUCTION_GRAPHQL_ENDPOINT

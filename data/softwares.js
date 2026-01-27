@@ -1,26 +1,26 @@
 export const softwares = [
   {
-    id: "dotproperty",
+    package: "dotproperty",
     name: "Property",
     username: "bolt",
   },
   {
-    id: "dotstore",
+    package: "dotstore",
     name: "Store",
     username: "yatsar",
   },
   {
-    id: "dotpro",
+    package: "dotpro",
     name: "Professional",
     username: "creatyve3d",
   },
   {
-    id: "expense-tracker",
+    package: "expense-tracker",
     name: "Expense Tracker",
     username: "spendly",
   },
   {
-    id: "finance",
+    package: "finance",
     name: "Finance",
     username: "spendly",
   },

@@ -8,8 +8,10 @@ export function startBuild(projects) {
   console.info("🚀 Building all projects...");
 
   const builds = projects.map((project) => {
+    if (!process.env.MACHINE) delete project.username;
+
     return new Promise((resolve, reject) => {
-      const outDir = path.join(DIST_DIR, project.id);
+      const outDir = path.join(DIST_DIR, project.package);
 
       const args = ["vite", "build"];
 
@@ -31,11 +33,11 @@ export function startBuild(projects) {
 
       child.on("exit", (code) => {
         if (code === 0) {
-          console.log(`✅ Build complete for ${project.id} → ${outDir}`);
+          console.log(`✅ Build complete for ${project.package} → ${outDir}`);
           resolve();
         } else {
-          console.error(`❌ Build failed for ${project.id}`);
-          reject(new Error(`Build failed for ${project.id}`));
+          console.error(`❌ Build failed for ${project.package}`);
+          reject(new Error(`Build failed for ${project.package}`));
         }
       });
     });

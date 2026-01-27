@@ -3,7 +3,7 @@ import path from "path";
 
 export async function create(project) {
   const packagesDir = path.resolve("packages");
-  const projectDir = path.join(packagesDir, project.id);
+  const projectDir = path.join(packagesDir, project.package);
 
   // Ensure packages directory exists
   await fs.mkdir(packagesDir, { recursive: true });
@@ -18,7 +18,7 @@ export async function create(project) {
 
   // Create project directory
   await fs.mkdir(projectDir, { recursive: true });
-  console.log(`Created project: ${project.id}`);
+  console.log(`Created project: ${project.package}`);
 
   // Scripts to inject
   const scripts = {
@@ -28,7 +28,7 @@ export async function create(project) {
 
   // package.json content
   const packageJson = {
-    name: project.id,
+    name: project.package,
     private: true,
     version: "0.0.0",
     type: "module",
@@ -42,5 +42,5 @@ export async function create(project) {
     JSON.stringify(packageJson, null, 2),
     "utf-8"
   );
-  console.log(`Created package.json for ${project.id}`);
+  console.log(`Created package.json for ${project.package}`);
 }

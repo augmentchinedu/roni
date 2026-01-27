@@ -1,10 +1,10 @@
 export const games = [
   {
-    id: "ludo",
+    package: "ludo",
     name: "Ludo",
   },
   {
-    id: "monopoly",
+    package: "monopoly",
     name: "Monopoly",
   },
 ];
