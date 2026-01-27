@@ -14,6 +14,12 @@ export default {
       NotFound: () => import("./../pages/error/NotFound.vue"),
     },
   },
+  dotpro: {
+    Home: () => import("./../packages/dotpro/pages/Home.vue"),
+  },
+  dotproperty: {
+    Home: () => import("./../packages/dotproperty/pages/Home.vue"),
+  },
   dotstore: {
     Explore: () => import("./../packages/dotstore/pages/Explore.vue"),
     Home: () => import("./../packages/dotstore/pages/Home.vue"),
