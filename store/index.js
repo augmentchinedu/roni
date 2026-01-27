@@ -34,6 +34,7 @@ export const useStore = defineStore("store", () => {
           id
           name
           username
+          content
         }
       }
     `;
