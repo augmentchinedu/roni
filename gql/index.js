@@ -2,9 +2,9 @@
 import { GraphQLClient, gql } from "graphql-request";
 
 const endpoint =
-  import.meta.env.MODE == "production"
-    ? import.meta.env.VITE_PRODUCTION_GRAPHQL_ENDPOINT
-    : import.meta.env.VITE_DEVELOPMENT_GRAPHQL_ENDPOINT;
+  import.meta.env.MODE == "development"
+    ? "http://localhost:3000/graphql"
+    : window.location.host + "/graphql";
 
 console.log(endpoint);
 // TGU apps use the same client endpoint
