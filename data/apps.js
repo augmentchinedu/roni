@@ -4,14 +4,6 @@ export const apps = [
     name: "The Great Unknown",
   },
   {
-    package: "handyman",
-    name: "Handy Man",
-  },
-  {
-    package: "handyfix",
-    name: "Handy Fix",
-  },
-  {
     package: "krane",
     name: "Genesis Krane",
   },
