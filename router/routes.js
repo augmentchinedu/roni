@@ -99,7 +99,7 @@ const routes = [
   },
 ];
 
-// console.log("🔁 Root redirect →", rootRedirect);
-// console.log("📦 Routes:", routes);
+console.log("🔁 Root redirect →", rootRedirect);
+console.log("📦 Routes:", routes);
 
 export default routes;
