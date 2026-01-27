@@ -12,7 +12,7 @@
           <i class="material-icons">{{ item.icon }}</i>
         </span>
         <!-- Label -->
-        <span class="text-xs">{{ item }}</span>
+        <span class="text-xs">{{ item.label }}</span>
       </div>
     </div>
   </nav>
@@ -20,10 +20,13 @@
 
 <script setup>
 import { useStore } from "@/store";
+import { useRouter } from "vue-router";
 import { ref, computed } from "vue";
 
 // Access app store
 const { app } = useStore();
+
+const router = useRouter();
 
 // Safely get bottom navigation array
 const navigation = computed(
