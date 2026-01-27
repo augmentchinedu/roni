@@ -11,9 +11,9 @@ const router = createRouter({
 });
 
 router.beforeEach(async () => {
-  const { initialize } = useStore();
+  const { app, initialize } = useStore();
 
-  await initialize();
+  if (!app.isInitialized) await initialize();
 
   if (!isToAuthenticate) authenticate();
 

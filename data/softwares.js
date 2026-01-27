@@ -2,7 +2,7 @@ export const softwares = [
   {
     package: "dotproperty",
     name: "Property",
-    username: "bolt",
+    username: "bolt-investment",
   },
   {
     package: "dotstore",
