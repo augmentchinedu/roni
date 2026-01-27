@@ -8,19 +8,19 @@ export async function startUpload(projects) {
   console.info("☁️ Uploading client projects...");
 
   for (const project of projects) {
-    const projectDir = path.join(CLIENTS_DIR, project.id);
+    const projectDir = path.join(CLIENTS_DIR, project.package);
 
     try {
       await fs.access(projectDir);
     } catch {
-      console.warn(`⚠️ Skipping ${project.id} (no build found)`);
+      console.warn(`⚠️ Skipping ${project.package} (no build found)`);
       continue;
     }
 
     await upload({
-      name: project.id,
+      name: project.package,
       localDir: projectDir,
-      remoteDir: project.id,
+      remoteDir: project.package,
     });
   }
 

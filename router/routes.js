@@ -61,7 +61,7 @@ function resolveRootRedirect(routes) {
 const globalRoutes = buildProjectRoutes("*");
 
 // Project routes
-const projectRoutes = buildProjectRoutes(PROJECT.id);
+const projectRoutes = buildProjectRoutes(PROJECT.package);
 
 // Merge routes, projectRoutes overwrite globalRoutes if path matches
 const routeMap = new Map();

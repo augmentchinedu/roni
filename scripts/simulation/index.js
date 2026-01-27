@@ -9,13 +9,13 @@ export function startSimulation(projects) {
   projects.forEach((project, i) => {
     const app = express();
     const port = BASE_PORT + i;
-    const outDir = path.join(DIST_DIR, project.id);
+    const outDir = path.join(DIST_DIR, project.package);
 
     // Serve static files from the client folder
     app.use(express.static(outDir));
     app.listen(port, () => {
       console.log(
-        `🚀 [SIMULATION] ${project.id} running at http://localhost:${port}`
+        `🚀 [SIMULATION] ${project.package} running at http://localhost:${port}`
       );
     });
   });
