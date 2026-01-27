@@ -38,7 +38,6 @@ export const useStore = defineStore("store", () => {
       }
     `;
 
-    console.log(variables);
     try {
       const data = await client.request(query, variables);
       console.log("GraphQL response:", data);
@@ -47,7 +46,7 @@ export const useStore = defineStore("store", () => {
       Object.assign(app, data.client);
 
       app.isInitialized = true;
-      console.info("Initialized via GraphQL client");
+      console.info("Initialized via GraphQL client", app);
     } catch (err) {
       console.error("GraphQL error:", err);
     }
