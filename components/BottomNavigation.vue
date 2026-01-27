@@ -8,7 +8,10 @@
         @click="handleClick(item)"
       >
         <!-- Icon (use item.icon if available) -->
-        <img :src="item.icon" class="w-8 h-8" />
+        <img
+          :src="`https://storage.googleapis.com/great-unknown.appspot.com/icons/${item.icon.inactive}`"
+          class="w-8 h-8"
+        />
         <!-- Label -->
         <span class="text-xs">{{ item.label }}</span>
       </div>

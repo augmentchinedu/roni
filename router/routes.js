@@ -3,8 +3,8 @@ import Pages from "./pages.js"; // global Pages import
 // ---------------- Helpers ----------------
 
 // Convert Pages object into routes array
-function buildProjectRoutes(projectId) {
-  const projectPages = Pages[projectId];
+function buildProjectRoutes(pkg) {
+  const projectPages = Pages[pkg];
   if (!projectPages) return [];
 
   const routes = [];
