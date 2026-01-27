@@ -13,7 +13,7 @@
         "CI=true",
         "NODE_ENV=production",
         "GCS_BUCKET=great-unknown.appspot.com",
-        "VITE_PRODUCTION_GRAPHQL_ENDPOINT=https://great-unknown.onrender.com/graphql"
+        "VITE_PRODUCTION_GRAPHQL_ENDPOINT=/graphql"
 
       ]
     },
