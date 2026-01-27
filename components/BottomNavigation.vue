@@ -8,9 +8,7 @@
         @click="handleClick(item)"
       >
         <!-- Icon (use item.icon if available) -->
-        <span v-if="item.icon" class="text-2xl mb-1">
-          <i class="material-icons">{{ item.icon }}</i>
-        </span>
+        <img :src="item.icon" class="w-8 h-8" />
         <!-- Label -->
         <span class="text-xs">{{ item.label }}</span>
       </div>
@@ -21,7 +19,7 @@
 <script setup>
 import { useStore } from "@/store";
 import { useRouter } from "vue-router";
-import { ref, computed } from "vue";
+import { computed } from "vue";
 
 // Access app store
 const { app } = useStore();
