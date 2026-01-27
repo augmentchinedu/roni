@@ -14,6 +14,7 @@ export const client = new GraphQLClient(endpoint, {
     Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
   },
 });
+console.log(client);
 
 // Export gql for writing queries
 export { gql };
