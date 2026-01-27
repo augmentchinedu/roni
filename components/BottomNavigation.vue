@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { useStore } from "@/store";
+import { useStore } from "../store";
 import { useRouter } from "vue-router";
 import { computed } from "vue";
 

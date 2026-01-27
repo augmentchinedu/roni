@@ -28,9 +28,6 @@ export default defineConfig(() => ({
     port: Number(process.env.PORT) || 5173,
   },
   resolve: {
-    alias: {
-      "@": path.resolve("."),
-    },
   },
   publicDir: "public",
   build: {
