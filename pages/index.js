@@ -3,13 +3,13 @@
 
 export default {
   admin: {
-    Index: "/pages/admin/Index.vue",
+    Index: () => import("/pages/admin/Index.vue"),
   },
   auth: {
-    SignIn: "/pages/auth/SignIn.vue",
-    SignUp: "/pages/auth/SignUp.vue",
+    SignIn: () => import("/pages/auth/SignIn.vue"),
+    SignUp: () => import("/pages/auth/SignUp.vue"),
   },
   error: {
-    NotFound: "/pages/error/NotFound.vue",
+    NotFound: () => import("/pages/error/NotFound.vue"),
   },
 };

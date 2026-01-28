@@ -7,6 +7,7 @@ import { isToAuthenticate } from "./scripts";
 
 const pkg = process.env.PACKAGE;
 const username = process.env.USERNAME;
+console.log(username, pkg);
 
 const DIST_DIR = path.resolve("clients");
 const outDir = path.join(DIST_DIR, pkg);
@@ -15,16 +16,8 @@ export default defineConfig(() => ({
   plugins: [vue(), UnoCSS()],
   root: path.resolve("."),
   define: {
-    define: {
-      __PKG__: pkg,
-      "import.meta.env.VITE_USERNAME": username,
-      "import.meta.env.PRODUCTION_GRAPHQL_ENDPOINT": JSON.stringify(
-        process.env.PRODUCTION_GRAPHQL_ENDPOINT
-      ),
-      "import.meta.env.DEVELOPMENT_GRAPHQL_ENDPOINT": JSON.stringify(
-        process.env.DEVELOPMENT_GRAPHQL_ENDPOINT
-      ),
-    },
+    __PKG__: JSON.stringify(pkg),
+    __USERNAME__: JSON.stringify(username),
   },
   server: {
     strictPort: true,

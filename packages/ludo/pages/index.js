@@ -2,5 +2,5 @@
 // Package: ludo
 
 export default {
-  Home: "/packages/ludo/pages/Home.vue",
+  Home: () => import("/packages/ludo/pages/Home.vue"),
 };

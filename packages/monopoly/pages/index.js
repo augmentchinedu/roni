@@ -2,5 +2,5 @@
 // Package: monopoly
 
 export default {
-  Home: "/packages/monopoly/pages/Home.vue",
+  Home: () => import("/packages/monopoly/pages/Home.vue"),
 };

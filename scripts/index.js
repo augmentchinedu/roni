@@ -4,4 +4,4 @@ export { startDev } from "./dev/index.js";
 export { startBuild } from "./build/index.js";
 export { startSimulation } from "./simulation/index.js";
 export { startUpload } from "./upload/index.js";
-export { generatePackagePages, generateGlobalPages } from "./pages/index.js";
+export { generateAllPages } from "./pages/index.js";

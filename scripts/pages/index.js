@@ -1,3 +1,4 @@
+// generatePages.js
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -11,6 +12,7 @@ const GLOBAL_PAGES_DIR = path.resolve("pages");
 /* ---------------- Helpers ---------------- */
 
 function safeKey(key) {
+  // quote keys with special chars
   return /[-\s]/.test(key) ? `"${key}"` : key;
 }
 
@@ -20,7 +22,12 @@ function objectToString(obj, indent = 2) {
 
   for (const [key, value] of Object.entries(obj).sort()) {
     if (typeof value === "string") {
-      str += `${pad}${safeKey(key)}: "${value}",\n`;
+      // 🔥 if it's an import function, emit raw JS
+      if (value.startsWith("() => import(")) {
+        str += `${pad}${safeKey(key)}: ${value},\n`;
+      } else {
+        str += `${pad}${safeKey(key)}: "${value}",\n`;
+      }
     } else {
       str += `${pad}${safeKey(key)}: ${objectToString(value, indent + 2)},\n`;
     }
@@ -30,30 +37,30 @@ function objectToString(obj, indent = 2) {
   return str;
 }
 
-/* ---------------- Walk pages ---------------- */
+function makeEntry(filePath) {
+  return `() => import("${filePath}")`;
+}
+
+/* ---------------- Walk pages recursively ---------------- */
 
 async function walkPages(dir, projectRoot) {
   const tree = {};
   const entries = await fs.readdir(dir, { withFileTypes: true });
 
   for (const entry of entries) {
-    const full = path.join(dir, entry.name);
+    const fullPath = path.join(dir, entry.name);
     const name = path.basename(entry.name, ".vue");
 
     if (entry.isDirectory()) {
-      tree[name] = await walkPages(full, projectRoot);
+      tree[name] = await walkPages(fullPath, projectRoot);
       continue;
     }
 
     if (entry.isFile() && entry.name.endsWith(".vue")) {
-      // 👇 absolute-from-project-root path
       const filePath =
-        "/" +
-        path
-          .relative(projectRoot, full)
-          .replace(/\\/g, "/");
+        "/" + path.relative(projectRoot, fullPath).replace(/\\/g, "/");
 
-      tree[name] = filePath;
+      tree[name] = makeEntry(filePath);
     }
   }
 
@@ -109,4 +116,19 @@ export default ${objectToString(pagesTree)};
 
   await fs.writeFile(OUTPUT_FILE, content);
   console.info("🌍 Global pages index.js generated");
+}
+
+/* ---------------- Generate all ---------------- */
+
+export async function generateAllPages() {
+  // global
+  await generateGlobalPages();
+
+  // all packages
+  const packageDirs = await fs.readdir(PACKAGES_DIR, { withFileTypes: true });
+  for (const dirent of packageDirs) {
+    if (dirent.isDirectory()) {
+      await generatePackagePages(dirent.name);
+    }
+  }
 }

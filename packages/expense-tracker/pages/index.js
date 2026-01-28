@@ -2,8 +2,8 @@
 // Package: expense-tracker
 
 export default {
-  Account: "/packages/expense-tracker/pages/Account.vue",
-  Analytics: "/packages/expense-tracker/pages/Analytics.vue",
-  Home: "/packages/expense-tracker/pages/Home.vue",
-  Transactions: "/packages/expense-tracker/pages/Transactions.vue",
+  Account: () => import("/packages/expense-tracker/pages/Account.vue"),
+  Analytics: () => import("/packages/expense-tracker/pages/Analytics.vue"),
+  Home: () => import("/packages/expense-tracker/pages/Home.vue"),
+  Transactions: () => import("/packages/expense-tracker/pages/Transactions.vue"),
 };

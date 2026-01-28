@@ -15,12 +15,10 @@ export const useStore = defineStore("store", () => {
   async function initialize() {
     if (app.isInitialized) return;
 
-    console.log("Initializing...");
+    console.log("Initializing...", __USERNAME__);
 
     const variables = {
-      username: import.meta.env.VITE_DEVELOPMENT_KEY
-        ? import.meta.env.VITE_USERNAME
-        : null,
+      username: import.meta.env.VITE_DEVELOPMENT_KEY ? __USERNAME__ : null,
       key:
         import.meta.env.MODE === "development"
           ? import.meta.env.VITE_DEVELOPMENT_KEY

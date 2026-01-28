@@ -7,14 +7,14 @@ export async function startDev(projects) {
   for (let i = 0; i < projects.length; i++) {
     const project = projects[i];
     const port = BASE_PORT + i;
-
+    console.log(project);
     const child = spawn("vite", [], {
       env: {
         ...process.env,
         PORT: port,
         NODE_ENV: "development",
         PACKAGE: project.package,
-        USERNAME: project.username
+        USERNAME: project.username,
       },
       stdio: "inherit",
     });

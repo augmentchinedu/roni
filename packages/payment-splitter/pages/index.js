@@ -2,7 +2,7 @@
 // Package: payment-splitter
 
 export default {
-  Home: "/packages/payment-splitter/pages/Home.vue",
-  Settings: "/packages/payment-splitter/pages/Settings.vue",
-  Split: "/packages/payment-splitter/pages/Split.vue",
+  Home: () => import("/packages/payment-splitter/pages/Home.vue"),
+  Settings: () => import("/packages/payment-splitter/pages/Settings.vue"),
+  Split: () => import("/packages/payment-splitter/pages/Split.vue"),
 };
