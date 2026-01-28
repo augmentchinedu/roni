@@ -5,4 +5,6 @@ const router = useRouter();
 
 router.push({ name: "explore" });
 </script>
-<template></template>
+<template>
+    <div>Home Page</div>
+</template>
