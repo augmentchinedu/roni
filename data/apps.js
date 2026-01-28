@@ -5,6 +5,11 @@ export const apps = [
     username: "the-great-unknown",
   },
   {
+    package: "games",
+    name: "Genesis Krane",
+    username: "genesiskrane",
+  },
+  {
     package: "krane",
     name: "Genesis Krane",
     username: "genesiskrane",

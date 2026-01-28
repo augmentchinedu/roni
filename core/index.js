@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 
-import { apps, games, softwares } from "../data/index.js";
+import { apps, softwares } from "../data/index.js";
 
 import {
   create,
@@ -11,7 +11,7 @@ import {
   generateAllPages,
 } from "../scripts/index.js";
 
-const projects = [...apps, ...games, ...softwares];
+const projects = [...apps, ...softwares];
 
 const env = process.env.NODE_ENV;
 const mode = process.argv[2];

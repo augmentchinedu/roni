@@ -1,10 +1,15 @@
-<script setup>
-import { useRouter } from "vue-router";
-
-const router = useRouter();
-
-router.push({ name: "explore" });
-</script>
 <template>
-    <div>Home Page</div>
+  <div id="page">
+    <home></home>
+  </div>
 </template>
+
+<script setup>
+import { defineAsyncComponent } from "vue";
+import { useStore } from "@/store";
+
+const { app } = useStore();
+
+const type = app.type; // could come from server, username, or host
+const Home = defineAsyncComponent(() => import(`../views/${type}/Home.vue`));
+</script>
