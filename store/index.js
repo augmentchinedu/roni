@@ -4,12 +4,9 @@ import { defineStore } from "pinia";
 import { client, gql } from "../gql/index.js";
 
 export const useStore = defineStore("store", () => {
-  const { name, username, package: pkg } = PROJECT;
-
   const app = reactive({
     id: null,
     name,
-    username,
     isInitialized: false,
   });
 
@@ -21,7 +18,9 @@ export const useStore = defineStore("store", () => {
     console.log("Initializing...");
 
     const variables = {
-      username: import.meta.env.VITE_DEVELOPMENT_KEY ? username : null,
+      username: import.meta.env.VITE_DEVELOPMENT_KEY
+        ? import.meta.env.VITE_USERNAME
+        : null,
       key:
         import.meta.env.MODE === "development"
           ? import.meta.env.VITE_DEVELOPMENT_KEY

@@ -1,3 +1,5 @@
+import fs from "fs/promises";
+
 import { apps, games, softwares } from "../data/index.js";
 
 import {
@@ -6,7 +8,8 @@ import {
   startBuild,
   startSimulation,
   startUpload,
-  generatePages,
+  generatePackagePages,
+  generateGlobalPages,
 } from "../scripts/index.js";
 
 const projects = [...apps, ...games, ...softwares];
@@ -16,7 +19,13 @@ const mode = process.argv[2];
 
 await Promise.all(projects.map((project) => create(project)));
 
-await generatePages();
+const packages = await fs.readdir("packages");
+
+for (const pkg of packages) {
+  await generatePackagePages(pkg);
+}
+
+await generateGlobalPages();
 
 if (env === "development") startDev(projects);
 if (env === "production") startBuild(projects);

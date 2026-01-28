@@ -1,5 +1,6 @@
 import path from "path";
 import { spawn } from "child_process";
+import { generatePackagePages } from "../pages/index.js";
 
 const DIST_DIR = path.resolve("clients");
 const isCI = process.env.CI === "true";
@@ -10,41 +11,48 @@ export function startBuild(projects) {
   const builds = projects.map((project) => {
     if (!process.env.MACHINE) delete project.username;
 
-    return new Promise((resolve, reject) => {
-      const outDir = path.join(DIST_DIR, project.package);
+    return new Promise(async (resolve, reject) => {
+      try {
 
-      const args = ["vite", "build"];
+        const outDir = path.join(DIST_DIR, project.package);
 
-      // 👇 watch ONLY in local dev
-      if (!isCI) {
-        args.push("--watch");
-      }
+        const args = ["vite", "build"];
 
-      const child = spawn("npx", args, {
-        cwd: path.resolve("."),
-        stdio: "inherit",
-        shell: true,
-        env: {
-          ...process.env,
-          NODE_ENV: "production",
-          PROJECT: JSON.stringify(project),
-        },
-      });
-
-      child.on("exit", (code) => {
-        if (code === 0) {
-          console.log(`✅ Build complete for ${project.package} → ${outDir}`);
-          resolve();
-        } else {
-          console.error(`❌ Build failed for ${project.package}`);
-          reject(new Error(`Build failed for ${project.package}`));
+        // 👇 watch ONLY in local dev
+        if (!isCI) {
+          args.push("--watch");
         }
-      });
+
+        // 🔑 2. Spawn vite build
+        const child = spawn("npx", args, {
+          cwd: path.resolve("."),
+          stdio: "inherit",
+          shell: true,
+          env: {
+            ...process.env,
+            NODE_ENV: "production",
+            PACKAGE: project.package,
+            USERNAME:project.username
+          },
+        });
+
+        child.on("exit", (code) => {
+          if (code === 0) {
+            console.log(`✅ Build complete for ${project.package} → ${outDir}`);
+            resolve();
+          } else {
+            console.error(`❌ Build failed for ${project.package}`);
+            reject(new Error(`Build failed for ${project.package}`));
+          }
+        });
+      } catch (err) {
+        console.error(`❌ Page generation failed for ${project.package}`);
+        reject(err);
+      }
     });
   });
 
   if (isCI) {
-    // CI: wait for all builds, then exit
     return Promise.all(builds)
       .then(() => {
         console.info("🏁 All CI builds completed successfully.");
@@ -56,6 +64,5 @@ export function startBuild(projects) {
       });
   }
 
-  // Local dev: don't block, keep watching
   console.info("👀 Watch mode active (local dev).");
 }
