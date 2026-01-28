@@ -25,6 +25,7 @@ export default defineConfig(() => ({
   },
   resolve: {
     alias: {
+      "@": path.resolve("."),
       "package-pages": path.resolve(__dirname, `packages/${pkg}/pages`),
       "global-pages": path.resolve(__dirname, `pages`),
     },
