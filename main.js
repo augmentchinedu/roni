@@ -1,4 +1,3 @@
-// import "./main.css";
 import "uno.css";
 import "virtual:uno.css"; // <-- this loads reset + base + utilities
 
