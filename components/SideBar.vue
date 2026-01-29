@@ -12,9 +12,13 @@
     </button>
 
     <ul v-if="isOpen" class="mt-4">
-      <li class="p-2 hover:bg-gray-700 rounded">Home</li>
-      <li class="p-2 hover:bg-gray-700 rounded">Profile</li>
-      <li class="p-2 hover:bg-gray-700 rounded">Settings</li>
+      <li
+        v-for="(item, index) in menu"
+        :key="index"
+        class="p-2 hover:bg-gray-700 rounded"
+      >
+        {{ item.label }}
+      </li>
     </ul>
   </div>
 </template>
@@ -35,6 +39,8 @@ const isOpen = ref(true);
 function toggleSidebar() {
   isOpen.value = !isOpen.value;
 }
+
+const menu = computed(() => app.content.navigation.sidebar.left);
 </script>
 
 <style scoped>
