@@ -1,0 +1,4 @@
+body {
+  margin: 0; /* Overrides user agent margin */
+  padding: 0; /* Overrides user agent padding */
+}

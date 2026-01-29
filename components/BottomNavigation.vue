@@ -1,5 +1,8 @@
 <template>
-  <nav class="fixed bottom-0 left-0 w-full bg-white shadow-t z-50">
+  <nav
+    class="fixed bottom-0 left-0 w-full bg-white shadow-t z-50"
+    v-if="isVisible"
+  >
     <div class="flex justify-around items-center h-16">
       <div
         v-for="(item, index) in navigation"
@@ -33,6 +36,11 @@ const router = useRouter();
 const navigation = computed(
   () => app?.content?.navigation?.drawer?.bottom ?? []
 );
+
+// reactive computed for visibility
+const isVisible = computed(() => {
+  return app?.content?.navigation?.drawer?.bottom.length > 0;
+});
 
 // Click handler for nav items
 function handleClick(item) {

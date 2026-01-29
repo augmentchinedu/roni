@@ -1,4 +1,6 @@
+// import "./main.css";
 import "uno.css";
+import "virtual:uno.css"; // <-- this loads reset + base + utilities
 
 import { createApp } from "vue";
 import { createPinia } from "pinia";
