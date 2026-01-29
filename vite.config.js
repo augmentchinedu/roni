@@ -7,7 +7,6 @@ import { isToAuthenticate } from "./scripts";
 
 const pkg = process.env.PACKAGE;
 const username = process.env.USERNAME;
-console.log(username, pkg);
 
 const DIST_DIR = path.resolve("clients");
 const outDir = path.join(DIST_DIR, pkg);

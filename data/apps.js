@@ -7,7 +7,7 @@ export const apps = [
   {
     package: "games",
     name: "Genesis Krane",
-    username: "genesiskrane",
+    username: "games",
   },
   {
     package: "krane",
