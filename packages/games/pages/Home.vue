@@ -6,7 +6,7 @@
         :key="game.id"
         class="border rounded-lg p-4 flex flex-col items-center hover:shadow-lg transition"
       >
-        <img :src="game.image" :alt="game.name" class="w-24 h-24 mb-2" />
+        <img :src="game.image" :alt="game.name" class="rounded w-24 h-24 mb-2" />
         <div class="text-center font-semibold">{{ game.name }}</div>
       </div>
     </div>
