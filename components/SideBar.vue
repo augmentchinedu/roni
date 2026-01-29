@@ -1,7 +1,6 @@
 <template>
   <!-- Sidebar -->
   <div
-    v-if="isVisible"
     :class="[
       'bg-gray-800 text-white h-screen transition-all duration-300',
       isOpen ? 'w-64' : 'w-16',
@@ -28,11 +27,6 @@ import { computed, ref } from "vue";
 import { useStore } from "@/store";
 
 const { app } = useStore();
-
-// reactive computed for visibility
-const isVisible = computed(() => {
-  return app.content.navigation.sidebar.left.length > 0;
-});
 
 const isOpen = ref(true);
 

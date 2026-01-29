@@ -1,20 +1,26 @@
 <template>
-  <div id="main" class="flex relative min-h-screen">
+  <div id="main" class="min-h-screen w-full flex relative">
+    <SideBar v-if="isVisible" />
 
-    <SideBar />
-
-    <!-- Scrollable content -->
-    <div class="pb-16">
-      <!-- padding-bottom equal to nav height -->
+    <div class="pb-[72px] md:pb-20">
       <RouterView />
     </div>
-
     <!-- Fixed bottom nav -->
-    <BottomNavigation class="fixed bottom-0 left-0 w-full z-50" />
+    <BottomNavigation />
   </div>
 </template>
 
 <script setup>
+import { computed, ref } from "vue";
+import { useStore } from "@/store";
+
 import SideBar from "./components/SideBar.vue";
 import BottomNavigation from "./components/BottomNavigation.vue";
+
+const { app } = useStore();
+
+// reactive computed for visibility
+const isVisible = computed(() => {
+  return app.content.navigation.sidebar.left.length > 0;
+});
 </script>

@@ -1,118 +1,56 @@
-/* Text */
-.text-xs {
-  font-size: 0.75rem;
-} /* 12px */
-.text-sm {
-  font-size: 0.875rem;
-} /* 14px */
-.text-md {
-  font-size: 1rem;
-} /* 16px */
-.text-lg {
-  font-size: 1.125rem;
-} /* 18px */
-.text-xl {
-  font-size: 1.25rem;
-} /* 20px */
-
-/* Headings */
-h1 {
-  font-size: 1.75rem;
-} /* 28px */
-h2 {
-  font-size: 1.5rem;
-} /* 24px */
-h3 {
-  font-size: 1.25rem;
-} /* 20px */
-h4 {
-  font-size: 1.125rem;
-}
-h5 {
-  font-size: 1rem;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
 }
 
-@media (max-width: 480px) {
-  :root {
-    font-size: 15px;
-  }
-}
-
-button,
-input,
-textarea,
-select {
-  font-size: 1rem;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 :root {
-  /* Base size */
-  --font-base: 1rem; /* 16px */
+  /* Colors */
+  --primary-50: #eef2ff;
+  --primary-100: #e0e7ff;
+  --primary-500: #6366f1;
+  --primary-600: #4f46e5;
+  --primary-700: #4338ca;
 
-  /* Scale factor (THIS is the magic knob) */
-  --font-scale: 1;
+  --surface-0: #ffffff;
+  --surface-50: #f9fafb;
+  --surface-100: #f3f4f6;
+  --surface-200: #e5e7eb;
+  --surface-700: #374151;
+  --surface-900: #111827;
 
-  /* Derived sizes */
-  --text-xs: calc(var(--font-base) * 0.75 * var(--font-scale));
-  --text-sm: calc(var(--font-base) * 0.875 * var(--font-scale));
-  --text-md: calc(var(--font-base) * 1 * var(--font-scale));
-  --text-lg: calc(var(--font-base) * 1.125 * var(--font-scale));
-  --text-xl: calc(var(--font-base) * 1.25 * var(--font-scale));
+  --text-color: #111827;
+  --text-muted: #6b7280;
+  --border-color: #e5e7eb;
 
-  /* Headings */
-  --h1: calc(var(--font-base) * 1.75 * var(--font-scale));
-  --h2: calc(var(--font-base) * 1.5 * var(--font-scale));
-  --h3: calc(var(--font-base) * 1.25 * var(--font-scale));
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+  /* Font */
+  --font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Arial, sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  font-size: 1rem; /* or 18px for very readable UI */
 }
 
 body {
-  font-size: var(--text-md);
+  font-family: var(--font-family);
+  color: var(--text-color);
+  background: var(--surface-0);
   line-height: 1.5;
-}
-
-h1 {
-  font-size: var(--h1);
-}
-h2 {
-  font-size: var(--h2);
-}
-h3 {
-  font-size: var(--h3);
-}
-
-.text-xs {
-  font-size: var(--text-xs);
-}
-.text-sm {
-  font-size: var(--text-sm);
-}
-.text-lg {
-  font-size: var(--text-lg);
-}
-.text-xl {
-  font-size: var(--text-xl);
-}
-
-@media (max-width: 480px) {
-  :root {
-    --font-scale: 0.95;
-  }
-}
-
-@media (min-width: 1280px) {
-  :root {
-    --font-scale: 1.05;
-  }
-}
-
-.font-compact {
-  --font-scale: 0.9;
-}
-
-.font-comfortable {
-  --font-scale: 1;
-}
-
-.font-large {
-  --font-scale: 1.15;
 }

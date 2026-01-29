@@ -1,22 +1,22 @@
 <template>
   <nav
-    class="fixed bottom-0 left-0 w-full bg-white shadow-t z-50"
+    class="fixed bottom-0 left-0 w-full bg-white shadow-t z-50 pb-safe md:h-30 lg:h-20"
     v-if="isVisible"
   >
-    <div class="flex justify-around items-center h-16">
+    <div class="h-full flex justify-around items-center">
       <div
         v-for="(item, index) in navigation"
         :key="index"
-        class="flex flex-col items-center text-gray-600 hover:text-blue-600 transition-colors duration-200 cursor-pointer"
+        class="flex flex-col items-center justify-center flex-1 h-full text-gray-600 hover:text-blue-600 active:scale-95 transition-all duration-150 cursor-pointer"
         @click="handleClick(item)"
       >
-        <!-- Icon (use item.icon if available) -->
         <img
           :src="`https://storage.googleapis.com/great-unknown.appspot.com/icons/${item.icon.inactive}`"
-          class="w-8 h-8"
+          class="w-10 h-10"
         />
-        <!-- Label -->
-        <span class="text-xs">{{ item.label }}</span>
+        <span class="text-[11px] md:text-2xl lg:text-xs mt-1 font-medium">
+          {{ item.label }}
+        </span>
       </div>
     </div>
   </nav>

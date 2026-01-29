@@ -1,10 +1,10 @@
 <template>
-  <header class="text-center">
+  <header class="w-full text-center text-lg">
     <div>
-      <span class="font-bold text-3xl">Explore</span>
+      <span class="font-bold">Explore</span>
     </div>
     <div>
-      <span class="font-bold text-3xl">Search</span>
+      <span class="font-bold">Search</span>
     </div>
   </header>
   <main>
@@ -19,7 +19,7 @@
 </template>
 
 <script setup>
-import { useStore } from "../../../store";
+import { useStore } from "@/store";
 
 const { app } = useStore();
 const { explore } = app;
