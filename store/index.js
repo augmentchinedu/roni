@@ -31,6 +31,7 @@ export const useStore = defineStore("store", () => {
           id
           name
           username
+          type
           content
         }
       }

@@ -1,0 +1,118 @@
+/* Text */
+.text-xs {
+  font-size: 0.75rem;
+} /* 12px */
+.text-sm {
+  font-size: 0.875rem;
+} /* 14px */
+.text-md {
+  font-size: 1rem;
+} /* 16px */
+.text-lg {
+  font-size: 1.125rem;
+} /* 18px */
+.text-xl {
+  font-size: 1.25rem;
+} /* 20px */
+
+/* Headings */
+h1 {
+  font-size: 1.75rem;
+} /* 28px */
+h2 {
+  font-size: 1.5rem;
+} /* 24px */
+h3 {
+  font-size: 1.25rem;
+} /* 20px */
+h4 {
+  font-size: 1.125rem;
+}
+h5 {
+  font-size: 1rem;
+}
+
+@media (max-width: 480px) {
+  :root {
+    font-size: 15px;
+  }
+}
+
+button,
+input,
+textarea,
+select {
+  font-size: 1rem;
+}
+
+:root {
+  /* Base size */
+  --font-base: 1rem; /* 16px */
+
+  /* Scale factor (THIS is the magic knob) */
+  --font-scale: 1;
+
+  /* Derived sizes */
+  --text-xs: calc(var(--font-base) * 0.75 * var(--font-scale));
+  --text-sm: calc(var(--font-base) * 0.875 * var(--font-scale));
+  --text-md: calc(var(--font-base) * 1 * var(--font-scale));
+  --text-lg: calc(var(--font-base) * 1.125 * var(--font-scale));
+  --text-xl: calc(var(--font-base) * 1.25 * var(--font-scale));
+
+  /* Headings */
+  --h1: calc(var(--font-base) * 1.75 * var(--font-scale));
+  --h2: calc(var(--font-base) * 1.5 * var(--font-scale));
+  --h3: calc(var(--font-base) * 1.25 * var(--font-scale));
+}
+
+body {
+  font-size: var(--text-md);
+  line-height: 1.5;
+}
+
+h1 {
+  font-size: var(--h1);
+}
+h2 {
+  font-size: var(--h2);
+}
+h3 {
+  font-size: var(--h3);
+}
+
+.text-xs {
+  font-size: var(--text-xs);
+}
+.text-sm {
+  font-size: var(--text-sm);
+}
+.text-lg {
+  font-size: var(--text-lg);
+}
+.text-xl {
+  font-size: var(--text-xl);
+}
+
+@media (max-width: 480px) {
+  :root {
+    --font-scale: 0.95;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --font-scale: 1.05;
+  }
+}
+
+.font-compact {
+  --font-scale: 0.9;
+}
+
+.font-comfortable {
+  --font-scale: 1;
+}
+
+.font-large {
+  --font-scale: 1.15;
+}

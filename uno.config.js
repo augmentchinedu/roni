@@ -58,12 +58,21 @@ export default defineConfig({
 
           /* Font */
           --font-family: Inter, system-ui, sans-serif;
+          font-size: 16px;      
         }
 
+          
+        html {
+          -webkit-text-size-adjust: 100%;
+        }
+            
         body {
           font-family: var(--font-family);
           color: var(--text-color);
           background: var(--surface-0);
+          font-family: system-ui, -apple-system, BlinkMacSystemFont,
+                       "Segoe UI", Roboto, Inter, Arial, sans-serif;
+          font-size: 1rem;          /* 16px */
           line-height: 1.5;
         }
       `,
