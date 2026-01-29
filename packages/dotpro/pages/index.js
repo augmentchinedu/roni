@@ -2,8 +2,20 @@
 // Package: dotpro
 
 export default {
-  About: () => import("/packages/dotpro/pages/About.vue"),
-  Contact: () => import("/packages/dotpro/pages/Contact.vue"),
-  Projects: () => import("/packages/dotpro/pages/Projects.vue"),
-  Splash: () => import("/packages/dotpro/pages/Splash.vue"),
+  About: {
+    component: () => import("/packages/dotpro/pages/About.vue"),
+    path: "/about",
+  },
+  Contact: {
+    component: () => import("/packages/dotpro/pages/Contact.vue"),
+    path: "/contact",
+  },
+  Projects: {
+    component: () => import("/packages/dotpro/pages/Projects.vue"),
+    path: "/projects",
+  },
+  Splash: {
+    component: () => import("/packages/dotpro/pages/Splash.vue"),
+    path: "/splash",
+  },
 };

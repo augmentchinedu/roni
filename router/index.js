@@ -9,47 +9,51 @@ const { default: globalPages } = await import("global-pages/index.js");
 // package pages (active package)
 const { default: packagePages } = await import("package-pages/index.js");
 
-/* ---------------- Loader resolver ---------------- */
-
-function resolveLoader(path) {
+function normalizePath(path) {
   if (!path) return null;
-  // Vite sees this at build time
-  return () => import(/* @vite-ignore */ path);
+
+  // index → /
+  if (path === "index") return "/";
+
+  // /admin/index → /admin
+  if (path.endsWith("/index")) {
+    const base = path.replace(/\/index$/, "");
+    return base || "/";
+  }
+
+  return path;
 }
 
 /* ---------------- Route builder ---------------- */
 
-function buildRoutes(pages, basePath = "") {
+function buildRoutes(pages) {
   const routes = [];
 
-  for (const key in pages) {
-    const value = pages[key];
-    const lower = key.toLowerCase();
-    const isIndex = lower === "index";
+  function walk(tree) {
+    for (const key in tree) {
+      const node = tree[key];
 
-    // route path
-    const routePath = isIndex ? basePath || "/" : `${basePath}/${lower}`;
+      // leaf page
+      if (node.component) {
+        const resolvedPath = normalizePath(node.path);
 
-    // ✅ route name: leaf only, kebab-case
-    const routeName = isIndex
-      ? "index"
-      : lower.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+        routes.push({
+          path: resolvedPath,
+          name: key.toLowerCase(),
+          component: node.component,
+          meta: node.meta,
+        });
+        continue;
+      }
 
-    if (typeof value === "function") {
-      routes.push({
-        path: routePath,
-        name: routeName,
-        component: value,
-      });
-      continue;
-    }
-
-    // nested folder
-    if (typeof value === "object") {
-      routes.push(...buildRoutes(value, routePath));
+      // nested group
+      if (node.children) {
+        walk(node.children);
+      }
     }
   }
 
+  walk(pages);
   return routes;
 }
 
@@ -90,7 +94,12 @@ export async function createAppRouter() {
 
   // root redirect route
   const rootRedirect = resolveRootRedirect(routes);
-  routes.unshift({ path: "/", redirect: rootRedirect });
+
+  // remove any real "/" route
+  const filteredRoutes = routes.filter((r) => r.path !== "/");
+
+  // inject redirect
+  filteredRoutes.unshift({ path: "/", redirect: rootRedirect });
 
   /* ---------------- Debug logging ---------------- */
   console.group("📦 Router Routes");
@@ -105,15 +114,6 @@ export async function createAppRouter() {
   /* ---------------- Guards ---------------- */
   router.beforeEach(async (to, from, next) => {
     const store = useStore();
-
-    if (!store.app.isInitialized) {
-      try {
-        await store.initialize();
-      } catch (err) {
-        console.error("❌ App init failed", err);
-        return next(false);
-      }
-    }
 
     if (to.meta?.auth && !store.auth.isAuthenticated) {
       return next("/auth/signin");

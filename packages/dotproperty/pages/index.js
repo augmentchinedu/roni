@@ -2,7 +2,16 @@
 // Package: dotproperty
 
 export default {
-  Home: () => import("/packages/dotproperty/pages/Home.vue"),
-  Profile: () => import("/packages/dotproperty/pages/Profile.vue"),
-  Settings: () => import("/packages/dotproperty/pages/Settings.vue"),
+  Home: {
+    component: () => import("/packages/dotproperty/pages/Home.vue"),
+    path: "/home",
+  },
+  Profile: {
+    component: () => import("/packages/dotproperty/pages/Profile.vue"),
+    path: "/profile",
+  },
+  Settings: {
+    component: () => import("/packages/dotproperty/pages/Settings.vue"),
+    path: "/settings",
+  },
 };

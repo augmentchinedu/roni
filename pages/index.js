@@ -3,13 +3,31 @@
 
 export default {
   admin: {
-    Index: () => import("/pages/admin/Index.vue"),
+    children: {
+      Index: {
+        component: () => import("/pages/admin/Index.vue"),
+        path: "/admin/index",
+      },
+    },
   },
   auth: {
-    SignIn: () => import("/pages/auth/SignIn.vue"),
-    SignUp: () => import("/pages/auth/SignUp.vue"),
+    children: {
+      SignIn: {
+        component: () => import("/pages/auth/SignIn.vue"),
+        path: "/auth/signin",
+      },
+      SignUp: {
+        component: () => import("/pages/auth/SignUp.vue"),
+        path: "/auth/signup",
+      },
+    },
   },
   error: {
-    NotFound: () => import("/pages/error/NotFound.vue"),
+    children: {
+      NotFound: {
+        component: () => import("/pages/error/NotFound.vue"),
+        path: "/error/notfound",
+      },
+    },
   },
 };

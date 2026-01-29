@@ -2,6 +2,12 @@
 // Package: the-great-unknown
 
 export default {
-  Home: () => import("/packages/the-great-unknown/pages/Home.vue"),
-  Settings: () => import("/packages/the-great-unknown/pages/Settings.vue"),
+  Home: {
+    component: () => import("/packages/the-great-unknown/pages/Home.vue"),
+    path: "/home",
+  },
+  Settings: {
+    component: () => import("/packages/the-great-unknown/pages/Settings.vue"),
+    path: "/settings",
+  },
 };

@@ -2,5 +2,12 @@
 // Package: games
 
 export default {
-  Home: () => import("/packages/games/pages/Home.vue"),
+  Home: {
+    component: () => import("/packages/games/pages/Home.vue"),
+    path: "/home",
+  },
+  OnBoard: {
+    component: () => import("/packages/games/pages/OnBoard.vue"),
+    path: "/:id",
+  },
 };

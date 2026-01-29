@@ -17,18 +17,21 @@ function safeKey(key) {
 }
 
 function objectToString(obj, indent = 2) {
+  if (!obj || typeof obj !== "object") return "{}";
+
   const pad = " ".repeat(indent);
   let str = "{\n";
 
   for (const [key, value] of Object.entries(obj).sort()) {
+    if (value === undefined) continue;
+
     if (typeof value === "string") {
-      // 🔥 if it's an import function, emit raw JS
       if (value.startsWith("() => import(")) {
         str += `${pad}${safeKey(key)}: ${value},\n`;
       } else {
         str += `${pad}${safeKey(key)}: "${value}",\n`;
       }
-    } else {
+    } else if (typeof value === "object") {
       str += `${pad}${safeKey(key)}: ${objectToString(value, indent + 2)},\n`;
     }
   }
@@ -37,13 +40,41 @@ function objectToString(obj, indent = 2) {
   return str;
 }
 
+async function loadExistingPaths(indexFile) {
+  try {
+    const mod = await import("file://" + indexFile + "?t=" + Date.now());
+    return extractPaths(mod.default);
+  } catch {
+    return {};
+  }
+}
+
+function extractPaths(tree, acc = {}, prefix = []) {
+  for (const [key, value] of Object.entries(tree)) {
+    const current = [...prefix, key];
+
+    if (value?.path) {
+      acc[current.join(".")] = value.path;
+    }
+
+    if (value?.children) {
+      extractPaths(value.children, acc, current);
+    }
+  }
+
+  return acc;
+}
+
 function makeEntry(filePath) {
   return `() => import("${filePath}")`;
 }
 
-/* ---------------- Walk pages recursively ---------------- */
+function buildPath(segments) {
+  return "/" + segments.map((s) => s.toLowerCase()).join("/");
+}
 
-async function walkPages(dir, projectRoot) {
+/* ---------------- Walk pages recursively ---------------- */
+async function walkPages(dir, projectRoot, segments = []) {
   const tree = {};
   const entries = await fs.readdir(dir, { withFileTypes: true });
 
@@ -52,7 +83,9 @@ async function walkPages(dir, projectRoot) {
     const name = path.basename(entry.name, ".vue");
 
     if (entry.isDirectory()) {
-      tree[name] = await walkPages(fullPath, projectRoot);
+      tree[name] = {
+        children: await walkPages(fullPath, projectRoot, [...segments, name]),
+      };
       continue;
     }
 
@@ -60,29 +93,41 @@ async function walkPages(dir, projectRoot) {
       const filePath =
         "/" + path.relative(projectRoot, fullPath).replace(/\\/g, "/");
 
-      tree[name] = makeEntry(filePath);
+      const pageSegments = [...segments, name];
+
+      tree[name] = {
+        component: makeEntry(filePath),
+        path: buildPath(pageSegments),
+      };
     }
   }
 
   return tree;
 }
 
-/* ---------------- Package pages ---------------- */
+function applyExistingPaths(tree, existing, prefix = []) {
+  for (const [key, value] of Object.entries(tree)) {
+    const current = [...prefix, key];
+    const id = current.join(".");
+
+    if (existing[id]) {
+      value.path = existing[id];
+    }
+
+    if (value.children) {
+      applyExistingPaths(value.children, existing, current);
+    }
+  }
+}
 
 export async function generatePackagePages(packageName) {
-  if (!packageName) throw new Error("Package name is required");
-
   const PACKAGE_PAGES_DIR = path.join(PACKAGES_DIR, packageName, "pages");
   const OUTPUT_FILE = path.join(PACKAGE_PAGES_DIR, "index.js");
 
-  try {
-    await fs.access(PACKAGE_PAGES_DIR);
-  } catch {
-    console.warn(`⚠ No pages folder for "${packageName}"`);
-    return;
-  }
-
+  const existingPaths = await loadExistingPaths(OUTPUT_FILE);
   const pagesTree = await walkPages(PACKAGE_PAGES_DIR, process.cwd());
+
+  applyExistingPaths(pagesTree, existingPaths);
 
   const content = `// ⚠ AUTO-GENERATED — DO NOT EDIT
 // Package: ${packageName}
@@ -91,7 +136,6 @@ export default ${objectToString(pagesTree)};
 `;
 
   await fs.writeFile(OUTPUT_FILE, content);
-  console.info(`📦 pages/index.js generated for "${packageName}"`);
 }
 
 /* ---------------- Global pages ---------------- */

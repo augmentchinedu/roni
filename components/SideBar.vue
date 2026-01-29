@@ -1,25 +1,40 @@
 <template>
-  <!-- Sidebar -->
+  <!-- Overlay (mobile only) -->
   <div
+    v-if="isOpen && isMobile"
+    class="fixed inset-0 bg-black/50 z-40"
+    @click="toggleSidebar"
+  ></div>
+
+  <!-- Sidebar -->
+  <aside
     :class="[
-      'bg-gray-800 text-white h-screen transition-all duration-300',
-      isOpen ? 'w-64' : 'w-16',
+      'fixed md:static top-0 left-0 h-screen bg-gray-800 text-white z-50 transition-all duration-300',
+      isMobile
+        ? isOpen
+          ? 'w-64 translate-x-0'
+          : 'w-64 -translate-x-full'
+        : isOpen
+        ? 'w-64'
+        : 'w-16',
     ]"
   >
+    <!-- Toggle -->
     <button class="p-2 m-2 bg-gray-700 rounded" @click="toggleSidebar">
-      {{ isOpen ? "Close" : "Open" }}
+      ☰
     </button>
 
+    <!-- Menu -->
     <ul v-if="isOpen" class="mt-4">
       <li
         v-for="(item, index) in menu"
         :key="index"
-        class="p-2 hover:bg-gray-700 rounded"
+        class="p-2 hover:bg-gray-700 rounded cursor-pointer"
       >
         {{ item.label }}
       </li>
     </ul>
-  </div>
+  </aside>
 </template>
 
 <script setup>

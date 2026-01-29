@@ -2,8 +2,20 @@
 // Package: expense-tracker
 
 export default {
-  Account: () => import("/packages/expense-tracker/pages/Account.vue"),
-  Analytics: () => import("/packages/expense-tracker/pages/Analytics.vue"),
-  Home: () => import("/packages/expense-tracker/pages/Home.vue"),
-  Transactions: () => import("/packages/expense-tracker/pages/Transactions.vue"),
+  Account: {
+    component: () => import("/packages/expense-tracker/pages/Account.vue"),
+    path: "/account",
+  },
+  Analytics: {
+    component: () => import("/packages/expense-tracker/pages/Analytics.vue"),
+    path: "/analytics",
+  },
+  Home: {
+    component: () => import("/packages/expense-tracker/pages/Home.vue"),
+    path: "/home",
+  },
+  Transactions: {
+    component: () => import("/packages/expense-tracker/pages/Transactions.vue"),
+    path: "/transactions",
+  },
 };

@@ -2,14 +2,40 @@
 // Package: dotstore
 
 export default {
-  Cart: () => import("/packages/dotstore/pages/Cart.vue"),
-  Explore: () => import("/packages/dotstore/pages/Explore.vue"),
-  Home: () => import("/packages/dotstore/pages/Home.vue"),
-  Profile: () => import("/packages/dotstore/pages/Profile.vue"),
-  Shop: () => import("/packages/dotstore/pages/Shop.vue"),
-  Wishlist: () => import("/packages/dotstore/pages/Wishlist.vue"),
+  Cart: {
+    component: () => import("/packages/dotstore/pages/Cart.vue"),
+    path: "/cart",
+  },
+  Explore: {
+    component: () => import("/packages/dotstore/pages/Explore.vue"),
+    path: "/explore",
+  },
+  Home: {
+    component: () => import("/packages/dotstore/pages/Home.vue"),
+    path: "/home",
+  },
+  Profile: {
+    component: () => import("/packages/dotstore/pages/Profile.vue"),
+    path: "/profile",
+  },
+  Shop: {
+    component: () => import("/packages/dotstore/pages/Shop.vue"),
+    path: "/shop",
+  },
+  Wishlist: {
+    component: () => import("/packages/dotstore/pages/Wishlist.vue"),
+    path: "/wishlist",
+  },
   auth: {
-    SignIn: () => import("/packages/dotstore/pages/auth/SignIn.vue"),
-    SignUp: () => import("/packages/dotstore/pages/auth/SignUp.vue"),
+    children: {
+      SignIn: {
+        component: () => import("/packages/dotstore/pages/auth/SignIn.vue"),
+        path: "/auth/signin",
+      },
+      SignUp: {
+        component: () => import("/packages/dotstore/pages/auth/SignUp.vue"),
+        path: "/auth/signup",
+      },
+    },
   },
 };

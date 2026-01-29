@@ -2,7 +2,16 @@
 // Package: krane
 
 export default {
-  Apps: () => import("/packages/krane/pages/Apps.vue"),
-  Games: () => import("/packages/krane/pages/Games.vue"),
-  Settings: () => import("/packages/krane/pages/Settings.vue"),
+  Apps: {
+    component: () => import("/packages/krane/pages/Apps.vue"),
+    path: "/apps",
+  },
+  Games: {
+    component: () => import("/packages/krane/pages/Games.vue"),
+    path: "/games",
+  },
+  Settings: {
+    component: () => import("/packages/krane/pages/Settings.vue"),
+    path: "/settings",
+  },
 };
