@@ -1,5 +1,8 @@
 <template>
-  <div id="main" class="relative min-h-screen">
+  <div id="main" class="flex relative min-h-screen">
+
+    <SideBar />
+
     <!-- Scrollable content -->
     <div class="pb-16">
       <!-- padding-bottom equal to nav height -->
@@ -12,5 +15,6 @@
 </template>
 
 <script setup>
+import SideBar from "./components/SideBar.vue";
 import BottomNavigation from "./components/BottomNavigation.vue";
 </script>
