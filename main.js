@@ -1,3 +1,4 @@
+import '@unocss/reset/normalize.css'
 import "uno.css";
 import "virtual:uno.css"; // <-- this loads reset + base + utilities
 
