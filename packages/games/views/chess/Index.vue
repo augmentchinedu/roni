@@ -9,36 +9,13 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-
+import { createBoard, createPieces } from "../../js/chess";
 const board = ref(null);
 
 onMounted(() => {
   // 1️⃣ Create board squares
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const square = document.createElement("div");
-      square.className =
-        (row + col) % 2 === 0 ? "white square" : "black square";
-      board.value.appendChild(square);
-    }
-  }
-
-  // 2️⃣ Add pieces
-  const pieces = {
-    0: ["♜", "♞", "♝", "♛", "♚", "♝", "♞", "♜"],
-    1: ["♟", "♟", "♟", "♟", "♟", "♟", "♟", "♟"],
-    6: ["♙", "♙", "♙", "♙", "♙", "♙", "♙", "♙"],
-    7: ["♖", "♘", "♗", "♕", "♔", "♗", "♘", "♖"],
-  };
-
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const square = board.value.children[row * 8 + col];
-      if (pieces[row]) {
-        square.textContent = pieces[row][col];
-      }
-    }
-  }
+  createBoard(board);
+  createPieces(board);
 });
 </script>
 
@@ -60,5 +37,12 @@ onMounted(() => {
 /* Light squares */
 .white {
   background-color: rgb(240 241 220);
+}
+
+.piece {
+  width: 80%;
+  height: 80%;
+  pointer-events: none;
+  user-select: none;
 }
 </style>
