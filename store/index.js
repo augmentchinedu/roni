@@ -2,47 +2,69 @@
 import { reactive } from "vue";
 import { defineStore } from "pinia";
 import { client, gql } from "../gql/index.js";
+import { USER_BASE_FIELDS } from "../gql/user.base.js";
+import { USER_CLIENT_FIELDS } from "gql/user.js";
 
 export const useStore = defineStore("store", () => {
   const app = reactive({
     id: null,
-    name,
+    name: null,
     isInitialized: false,
+    isAuthenticated: () => !!localStorage.getItem("token"),
+    content: {},
   });
-
   const user = reactive({});
 
   async function initialize() {
     if (app.isInitialized) return;
 
-    console.log("Initializing...", __USERNAME__);
+    console.log("Initializing...");
 
-    const variables = {
-      username: import.meta.env.VITE_DEVELOPMENT_KEY ? __USERNAME__ : null,
-      key:
-        import.meta.env.MODE === "development"
-          ? import.meta.env.VITE_DEVELOPMENT_KEY
-          : null,
-    };
+    const isDev = import.meta.env.MODE === "development";
 
-    const query = gql`
-      query GetClient($username: String, $key: String) {
-        client(username: $username, key: $key) {
-          id
-          name
-          username
-          type
-          content
+    const variables = isDev
+      ? {
+          username: __USERNAME__,
+          key: import.meta.env.VITE_DEVELOPMENT_KEY,
         }
-      }
-    `;
+      : {};
 
     try {
-      const data = await client.request(query, variables);
+      const { client: clientData } = await client.request(
+        gql`
+          query GetClient($username: String, $key: String) {
+            client(username: $username, key: $key) {
+              id
+              name
+              username
+              type
+              content
+            }
+          }
+        `,
+        variables
+      );
 
-      // Merge client data into app
-      Object.assign(app, data.client);
+      Object.assign(app, clientData);
+      app.isAuthenticated = !!localStorage.getItem("token");
       app.isInitialized = true;
+
+      if (app.isAuthenticated) {
+        const { user: userData } = await client.request(gql`
+          ${USER_BASE_FIELDS}
+          ${USER_CLIENT_FIELDS}
+
+          query GetUser {
+            user {
+              ...UserBaseFields
+              ...UserFields
+            }
+          }
+        `);
+
+        Object.assign(user, userData);
+        console.log(user);
+      }
 
       console.info("Initialized via GraphQL client", app);
     } catch (err) {

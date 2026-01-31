@@ -27,6 +27,6 @@ export const softwares = [
   {
     package: "finance",
     name: "Finance",
-    username: "spendly",
+    username: "zendaa",
   },
 ];

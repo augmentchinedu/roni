@@ -90,25 +90,30 @@ export async function createAppRouter() {
   const packageRoutes = buildRoutes(packagePages);
 
   // merge: package overrides global
-  const routes = mergeRoutes(globalRoutes, packageRoutes);
+  const mergedRoutes = mergeRoutes(globalRoutes, packageRoutes);
 
-  // root redirect route
-  const rootRedirect = resolveRootRedirect(routes);
+  // decide root redirect
+  const rootRedirect = resolveRootRedirect(mergedRoutes);
 
-  // remove any real "/" route
-  const filteredRoutes = routes.filter((r) => r.path !== "/");
+  // remove any real "/" page
+  const finalRoutes = mergedRoutes.filter((r) => r.path !== "/");
 
-  // inject redirect
-  filteredRoutes.unshift({ path: "/", redirect: rootRedirect });
+  // inject root redirect
+  finalRoutes.unshift({
+    path: "/",
+    redirect: rootRedirect,
+  });
 
   /* ---------------- Debug logging ---------------- */
   console.group("📦 Router Routes");
-  routes.forEach((r) => console.log(r.path.padEnd(20), r.name));
+  finalRoutes.forEach((r) =>
+    console.log(r.path.padEnd(20), r.redirect ? "→ " + r.redirect : r.name)
+  );
   console.groupEnd();
 
   const router = createRouter({
     history: createWebHistory(),
-    routes,
+    routes: finalRoutes, // ✅ use finalRoutes
   });
 
   /* ---------------- Guards ---------------- */

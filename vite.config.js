@@ -5,6 +5,8 @@ import vue from "@vitejs/plugin-vue";
 import UnoCSS from "unocss/vite";
 import { isToAuthenticate } from "./scripts";
 
+
+
 const pkg = process.env.PACKAGE;
 const username = process.env.USERNAME;
 
@@ -27,6 +29,7 @@ export default defineConfig(() => ({
       "@": path.resolve("."),
       "package-pages": path.resolve(__dirname, `packages/${pkg}/pages`),
       "global-pages": path.resolve(__dirname, `pages`),
+      "gql": path.resolve(__dirname, `packages/${pkg}/gql`),
     },
   },
   publicDir: "public",
