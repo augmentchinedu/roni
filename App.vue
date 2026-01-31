@@ -2,8 +2,8 @@
   <div id="main" class="min-h-screen w-full flex relative">
     <SideBar v-if="isVisible" />
 
-    <div class="pb-[72px] md:pb-20">
-      <RouterView />
+    <div class="pb-[72px] md:pb-20 w-full">
+      <RouterView class="w-full"/>
     </div>
     <!-- Fixed bottom nav -->
     <BottomNavigation />

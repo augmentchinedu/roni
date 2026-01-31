@@ -1,6 +1,6 @@
 <template>
-  <div id="page">
-    <home></home>
+  <div id="page" class="w-full">
+    <home class="w-full"></home>
   </div>
 </template>
 
