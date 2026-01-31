@@ -9,7 +9,7 @@
   <!-- Sidebar -->
   <aside
     :class="[
-      'fixed md:static top-0 left-0 h-screen bg-gray-800 text-white z-50 transition-all duration-300',
+      'fixed md:static top-0 left-0 h-screen bg-red-800 text-white z-50 transition-all duration-300',
       isMobile
         ? isOpen
           ? 'w-64 translate-x-0'
@@ -25,7 +25,7 @@
     </button>
 
     <!-- Menu -->
-    <ul v-if="isOpen" class="mt-4">
+    <ul v-if="isOpen" class="w-full mt-4">
       <li
         v-for="(item, index) in menu"
         :key="index"

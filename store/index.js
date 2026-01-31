@@ -49,7 +49,7 @@ export const useStore = defineStore("store", () => {
       app.isAuthenticated = !!localStorage.getItem("token");
       app.isInitialized = true;
 
-      if (app.isAuthenticated) {
+      if (app.isAuthenticated || true) {
         const { user: userData } = await client.request(gql`
           ${USER_BASE_FIELDS}
           ${USER_CLIENT_FIELDS}
