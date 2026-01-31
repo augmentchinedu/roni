@@ -53,6 +53,9 @@ body {
   color: var(--text-color);
   background: var(--surface-0);
   line-height: 1.5;
+
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .container {

@@ -1,6 +1,6 @@
 <template>
   <nav
-    class="fixed bottom-0 left-0 w-full bg-white shadow-t z-50 pb-safe md:h-30 lg:h-20"
+    class="fixed bottom-0 left-0 w-full bg-white shadow-t z-50 pb-safe h-20"
     v-if="isVisible"
   >
     <div class="h-full flex justify-around items-center">
