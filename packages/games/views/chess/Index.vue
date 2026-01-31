@@ -1,15 +1,19 @@
 <template>
-  <div id="chess" class="flex justify-center items-center">
+  <div id="chess" class="flex flex-col gap-4 p-2">
+    
+    <profile-bar></profile-bar>
     <div
       ref="board"
-      class="grid grid-cols-8 grid-rows-8 w-96 h-96 border border-black"
+      class="grid grid-cols-8 grid-rows-8 w-96 h-96 border border-black mx-auto"
     ></div>
+    <profile-bar></profile-bar>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
 import { createBoard, createPieces } from "../../js/chess";
+import ProfileBar from "./components/ProfileBar.vue";
 const board = ref(null);
 
 onMounted(() => {
