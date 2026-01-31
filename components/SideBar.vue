@@ -1,21 +1,19 @@
 <!-- Sidebar.vue -->
 <template>
-  <!-- Overlay (mobile only) -->
-  <div
-    v-if="isOpen && isMobile"
-    class="fixed inset-0 bg-black/50 z-40"
-    @click="closeSidebar"
-  ></div>
-
   <!-- Sidebar -->
   <aside
     :class="[
-      'fixed md:static top-0 left-0 h-screen bg-red-800 text-white z-50 transition-all duration-300',
+      'fixed md:static top-0 left-0 h-screen bg-red-800 text-white z-50 transition-all duration-300 flex flex-col',
       sidebarWidthClass,
     ]"
   >
+    <!-- Header -->
+    <header class="p-4 text-lg font-semibold">
+      Investor Property Dashboard
+    </header>
+
     <!-- Menu -->
-    <ul v-if="isOpen" class="w-full mt-4">
+    <ul v-if="isOpen" class="flex-1 mt-4 overflow-auto">
       <li
         v-for="(item, index) in menu"
         :key="index"
@@ -24,7 +22,19 @@
         {{ item.label }}
       </li>
     </ul>
+
+    <!-- Footer -->
+    <footer class="mt-auto flex items-center gap-3 p-4 bg-red-900">
+      <img src="https://i.pravatar.cc/100" class="w-10 h-10 rounded-full" />
+      <span class="flex-1 flex items-center h-full"> Christain Paul </span>
+    </footer>
   </aside>
+  <!-- Overlay (mobile only) -->
+  <div
+    v-if="isOpen && isMobile"
+    class="fixed inset-0 bg-black/50 z-40"
+    @click="closeSidebar"
+  ></div>
 </template>
 
 <script setup>
