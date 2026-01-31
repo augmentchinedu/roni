@@ -38,16 +38,35 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useStore } from "@/store";
 
 const { app } = useStore();
 
-const isOpen = ref(true);
+const isOpen = ref(false);
+const isMobile = ref(false);
 
-function toggleSidebar() {
+const toggleSidebar = () => {
   isOpen.value = !isOpen.value;
-}
+};
+
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 768;
+
+  // desktop should stay open
+  if (!isMobile.value) {
+    isOpen.value = true;
+  }
+};
+
+onMounted(() => {
+  checkMobile();
+  window.addEventListener("resize", checkMobile);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", checkMobile);
+});
 
 const menu = computed(() => app.content.navigation.sidebar.left);
 </script>
