@@ -46,12 +46,12 @@ jobs:
       - name: Generate Linux SEA config
         run: |
           cat > sea-config-linux.json <<EOL
-          {
-            "main": "bundle.js",
-            "output": "dist/roni-linux",
-            "nodeExecutable": "$NODE_PATH"
-          }
-          EOL
+{
+"main": "bundle.js",
+"output": "dist/roni-linux",
+"nodeExecutable": "$NODE_PATH"
+}
+EOL
 
       - name: Build Linux SEA
         run: node --build-sea sea-config-linux.json
@@ -78,16 +78,16 @@ jobs:
         run: mkdir dist
 
       - name: Generate Windows SEA config
+        shell: pwsh
         run: |
           $json = @"
 {
-  "main": "bundle.js",
-  "output": "dist/roni.exe",
-  "nodeExecutable": "C:\\hostedtoolcache\\windows\\node\\25.6.1\\x64\\node.exe"
+"main": "bundle.js",
+"output": "dist/roni.exe",
+"nodeExecutable": "C:\\hostedtoolcache\\windows\\node\\25.6.1\\x64\\node.exe"
 }
 "@
           $json | Out-File -FilePath sea-config-windows.json -Encoding UTF8
-        shell: pwsh
 
       - name: Build Windows SEA
         run: node --build-sea sea-config-windows.json
@@ -114,12 +114,12 @@ jobs:
       - name: Generate macOS SEA config
         run: |
           cat > sea-config-macos.json <<EOL
-          {
-            "main": "bundle.js",
-            "output": "dist/roni-macos",
-            "nodeExecutable": "$NODE_PATH"
-          }
-          EOL
+{
+"main": "bundle.js",
+"output": "dist/roni-macos",
+"nodeExecutable": "$NODE_PATH"
+}
+EOL
 
       - name: Build macOS SEA
         run: node --build-sea sea-config-macos.json
