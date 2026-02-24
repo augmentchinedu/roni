@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  # Step 1: Bundle once (Linux runner)
+  # Step 1: Bundle once
   bundle:
     runs-on: ubuntu-latest
     outputs:
@@ -36,29 +36,27 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '25'
+
       - name: Ensure dist folder exists
         run: mkdir -p dist
 
-      - name: Download standalone Node for Linux
-        run: |
-          curl -fsSL https://nodejs.org/dist/v25.6.1/node-v25.6.1-linux-x64.tar.xz -o node.tar.xz
-          tar -xf node.tar.xz
-          cp node-v25.6.1-linux-x64/bin/node node-standalone
-          chmod +x node-standalone
-
       - name: Generate Linux SEA config
         run: |
-          NODE_PATH=$PWD/node-standalone
-          cat > sea-config-linux.json <<EOL
+          NODE_PATH=$(which node)
+          cat > sea-config-linux.json <<'EOL'
 {
   "main": "bundle.js",
   "output": "dist/roni-linux",
-  "nodeExecutable": "$NODE_PATH"
+  "nodeExecutable": "'"$NODE_PATH"'"
 }
 EOL
 
       - name: Build Linux SEA
-        run: ./node-standalone --build-sea ${{ github.workspace }}/sea-config-linux.json
+        run: node --build-sea ${{ github.workspace }}/sea-config-linux.json
 
       - name: Upload Linux binary
         uses: actions/upload-artifact@v4
@@ -82,6 +80,7 @@ EOL
         run: mkdir dist
 
       - name: Generate Windows SEA config
+        shell: pwsh
         run: |
           $json = @{
             main = "bundle.js"
@@ -89,7 +88,6 @@ EOL
             nodeExecutable = "C:\hostedtoolcache\windows\node\25.6.1\x64\node.exe"
           } | ConvertTo-Json
           $json | Set-Content -Path sea-config-windows.json -Encoding UTF8
-        shell: pwsh
 
       - name: Build Windows SEA
         run: node --build-sea ${{ github.workspace }}/sea-config-windows.json
@@ -107,29 +105,27 @@ EOL
     steps:
       - uses: actions/checkout@v3
 
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '25'
+
       - name: Ensure dist folder exists
         run: mkdir -p dist
 
-      - name: Download standalone Node for macOS
-        run: |
-          curl -fsSL https://nodejs.org/dist/v25.6.1/node-v25.6.1-darwin-x64.tar.gz -o node.tar.gz
-          tar -xf node.tar.gz
-          cp node-v25.6.1-darwin-x64/bin/node node-standalone
-          chmod +x node-standalone
-
       - name: Generate macOS SEA config
         run: |
-          NODE_PATH=$PWD/node-standalone
-          cat > sea-config-macos.json <<EOL
+          NODE_PATH=$(which node)
+          cat > sea-config-macos.json <<'EOL'
 {
   "main": "bundle.js",
   "output": "dist/roni-macos",
-  "nodeExecutable": "$NODE_PATH"
+  "nodeExecutable": "'"$NODE_PATH"'"
 }
 EOL
 
       - name: Build macOS SEA
-        run: ./node-standalone --build-sea ${{ github.workspace }}/sea-config-macos.json
+        run: node --build-sea ${{ github.workspace }}/sea-config-macos.json
 
       - name: Upload macOS binary
         uses: actions/upload-artifact@v4
