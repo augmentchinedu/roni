@@ -41,6 +41,9 @@ jobs:
         with:
           node-version: '25'
 
+      - name: Ensure dist folder exists
+        run: mkdir -p dist
+
       - name: Build Linux SEA
         run: node --build-sea ${{ github.workspace }}/sea-config-linux.json
 
@@ -62,6 +65,9 @@ jobs:
         with:
           node-version: '25'
 
+      - name: Ensure dist folder exists
+        run: mkdir -p dist
+
       - name: Build Windows SEA
         run: node --build-sea ${{ github.workspace }}/sea-config-windows.json
 
@@ -82,6 +88,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '25'
+
+      - name: Ensure dist folder exists
+        run: mkdir -p dist
 
       - name: Build macOS SEA
         run: node --build-sea ${{ github.workspace }}/sea-config-macos.json
