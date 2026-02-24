@@ -4,15 +4,15 @@ import commonjs from '@rollup/plugin-commonjs';
 export default {
   input: 'index.js',
   output: {
-    file: 'bundle.js',
-    format: 'cjs',      // SEA blob must be CJS
+    file: 'bundle.cjs',      // .cjs extension bypasses "type": "module"
+    format: 'cjs',
     inlineDynamicImports: true,
   },
   plugins: [
     nodeResolve({ preferBuiltins: true }),
     commonjs(),
   ],
-  external: [           // Node built-ins — SEA provides these
+  external: [
     'http', 'https', 'net', 'fs', 'path', 'os',
     'stream', 'crypto', 'buffer', 'events', 'util',
     'url', 'querystring', 'zlib', 'child_process',
