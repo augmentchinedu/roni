@@ -64,9 +64,9 @@ jobs:
       - name: Build Windows executable
         run: |
           mkdir dist
-          npx nexe src/main.js `
-            -t windows-x64-22.3.0 `
-            -o dist/Roni.exe `
+          npx nexe src/main.js ` 
+            -t windows-x64-22.3.0 ` 
+            -o dist/Roni.exe ` 
             --build
 
       - name: Set up gcloud
@@ -76,7 +76,7 @@ jobs:
           project_id: great-unknown
 
       - name: Upload Windows executable to GCS
-        run: gsutil cp dist/Roni.exe gs://your-bucket-name/roni-builds/Roni-windows.exe
+        run: gsutil cp dist/Roni.exe gs://your-bucket-name/roni-builds/Roni.exe
 
   build-macos:
     name: Build macOS
@@ -96,13 +96,19 @@ jobs:
       - name: Install Nexe
         run: npm install -g nexe
 
+      - name: Prepare macOS build environment
+        run: |
+          # Ensure Xcode CLI tools are installed
+          xcode-select --install || true
+          # Ensure Python 3 is available
+          brew install python@3 || true
+
       - name: Build macOS executable
         run: |
           mkdir -p dist
           npx nexe src/main.js \
             -t macos-x64-22.3.0 \
-            -o dist/Roni.app \
-            --build
+            -o dist/Roni.app
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
@@ -111,4 +117,4 @@ jobs:
           project_id: great-unknown
 
       - name: Upload macOS executable to GCS
-        run: gsutil -m cp -r dist/Roni.app gs://your-bucket-name/roni-builds/Roni-macos
+        run: gsutil -m cp -r dist/Roni.app gs://your-bucket-name/roni-builds/Roni.app
