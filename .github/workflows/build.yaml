@@ -1,48 +1,48 @@
-name: Build Roni
-on: [push]
+name: Build Roni & Upload to GCS
+
+on:
+  push:
+    branches: [main]
 
 jobs:
-  build-linux:
+  build-and-upload:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-      - run: npm ci
-      - run: npx nexe src/main.js -t linux-x64-20.5.0 -o dist/roni -r "assets/**/*"
-      - uses: actions/upload-artifact@v3
-        with:
-          name: roni-linux
-          path: dist/roni
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  build-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Node
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
-      - run: npm ci
-      - run: npx nexe src/main.js -t windows-x64-20.5.0 -o dist/Roni.exe -r "assets/**/*"
-      - uses: actions/upload-artifact@v3
-        with:
-          name: roni-windows
-          path: dist/Roni.exe
+          node-version: 20
 
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Node
-        uses: actions/setup-node@v3
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Nexe
+        run: npm install -g nexe
+
+      - name: Build Linux executable
+        run: |
+          mkdir -p dist
+          npx nexe src/main.js -t linux-x64-20.5.0 -o dist/roni -r "assets/**/*"
+
+      - name: Build Windows executable
+        run: |
+          mkdir -p dist
+          npx nexe src/main.js -t windows-x64-20.5.0 -o dist/Roni.exe -r "assets/**/*"
+
+      - name: Build macOS executable
+        run: |
+          mkdir -p dist
+          npx nexe src/main.js -t macos-x64-20.5.0 -o dist/Roni.app -r "assets/**/*"
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
         with:
-          node-version: '20'
-      - run: npm ci
-      - run: npx nexe src/main.js -t macos-x64-20.5.0 -o dist/Roni.app -r "assets/**/*"
-      - uses: actions/upload-artifact@v3
-        with:
-          name: roni-macos
-          path: dist/Roni.app
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: your-gcp-project-id
+
+      - name: Upload to GCS
+        run: |
+          gsutil -m cp -r dist/* gs://your-bucket-name/builds/roni
