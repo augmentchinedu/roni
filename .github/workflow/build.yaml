@@ -1,0 +1,48 @@
+name: Build Roni
+on: [push]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx nexe src/main.js -t linux-x64-20.5.0 -o dist/roni -r "assets/**/*"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: roni-linux
+          path: dist/roni
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx nexe src/main.js -t windows-x64-20.5.0 -o dist/Roni.exe -r "assets/**/*"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: roni-windows
+          path: dist/Roni.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx nexe src/main.js -t macos-x64-20.5.0 -o dist/Roni.app -r "assets/**/*"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: roni-macos
+          path: dist/Roni.app

@@ -1,18 +1,21 @@
 {
   "name": "roni",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "main": "main.js",
+  "type": "module",
+  "bin": "main.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js"
+    "start": "electron . --no-sandbox",
+    "dev": "node --watch main.js",
+    "build": "node build/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "morgan": "^1.10.1"
+  },
+  "devDependencies": {
+    "nexe": "^5.0.0-beta.4",
+    "pkg": "^5.8.1"
   }
 }
