@@ -1,5 +1,5 @@
 {
   "main": "bundle.js",
   "output": "dist/roni-macos",
-  "nodeExecutable": "/usr/local/bin/node"
+  "nodeExecutable": "$NODE_PATH"
 }

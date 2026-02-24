@@ -46,6 +46,8 @@ jobs:
 
       - name: Build Linux SEA
         run: node --build-sea ${{ github.workspace }}/sea-config-linux.json
+        env:
+          NODE_PATH: $(which node)
 
       - name: Upload Linux binary
         uses: actions/upload-artifact@v4
@@ -94,6 +96,8 @@ jobs:
 
       - name: Build macOS SEA
         run: node --build-sea ${{ github.workspace }}/sea-config-macos.json
+        env:
+          NODE_PATH: $(which node)
 
       - name: Upload macOS binary
         uses: actions/upload-artifact@v4
