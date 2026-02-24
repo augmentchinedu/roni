@@ -44,7 +44,7 @@ jobs:
       - name: Ensure dist folder exists
         run: mkdir -p dist
 
-      - name: Generate Linux SEA config dynamically
+      - name: Generate Linux SEA config
         run: |
           NODE_PATH=$(which node)
           cat > sea-config-linux.json <<EOL
@@ -79,13 +79,15 @@ jobs:
       - name: Ensure dist folder exists
         run: mkdir dist
 
-      - name: Generate Windows SEA config dynamically
+      - name: Generate Windows SEA config
         run: |
-          echo { > sea-config-windows.json
-          echo \"main\": \"bundle.js\", >> sea-config-windows.json
-          echo \"output\": \"dist/roni.exe\", >> sea-config-windows.json
-          echo \"nodeExecutable\": \"C:\\hostedtoolcache\\windows\\node\\25.6.1\\x64\\node.exe\" >> sea-config-windows.json
-          echo } >> sea-config-windows.json
+          $json = @{
+            main = "bundle.js"
+            output = "dist/roni.exe"
+            nodeExecutable = "C:\hostedtoolcache\windows\node\25.6.1\x64\node.exe"
+          } | ConvertTo-Json
+          $json | Set-Content -Path sea-config-windows.json -Encoding UTF8
+        shell: pwsh
 
       - name: Build Windows SEA
         run: node --build-sea ${{ github.workspace }}/sea-config-windows.json
@@ -111,7 +113,7 @@ jobs:
       - name: Ensure dist folder exists
         run: mkdir -p dist
 
-      - name: Generate macOS SEA config dynamically
+      - name: Generate macOS SEA config
         run: |
           NODE_PATH=$(which node)
           cat > sea-config-macos.json <<EOL
