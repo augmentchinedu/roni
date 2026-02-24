@@ -34,11 +34,11 @@ jobs:
         run: |
           mkdir -p dist
           if [[ "${{ runner.os }}" == "Linux" ]]; then
-            pkg . --targets node22-linux-x64 --output dist/roni-linux
+            pkg . --targets node20-linux-x64 --output dist/roni-linux
           elif [[ "${{ runner.os }}" == "Windows" ]]; then
-            pkg . --targets node22-win-x64 --output dist/Roni.exe
+            pkg . --targets node20-win-x64 --output dist/Roni.exe
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
-            pkg . --targets node22-macos-x64 --output dist/Roni.app
+            pkg . --targets node20-macos-x64 --output dist/Roni.app
           fi
 
       # 6️⃣ Set up gcloud

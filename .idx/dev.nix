@@ -2,7 +2,7 @@
   channel = "stable-24.05";
 
   packages = [
-    pkgs.nodejs_22
+    pkgs.nodejs_20
     pkgs.yarn
   ];
 
