@@ -3,6 +3,8 @@ name: Build Roni SEA Binaries
 on:
   push:
     branches: [main]
+    tags:
+      - "v*"
   pull_request:
     branches: [main]
 
@@ -29,7 +31,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions/download-artifact@v4
         with:
           name: bundle
@@ -40,7 +41,7 @@ jobs:
         run: |
           curl -fsSL https://nodejs.org/dist/v25.6.1/node-v25.6.1-linux-x64.tar.xz -o node.tar.xz
           tar -xf node.tar.xz
-          mv node-v25.6.1-linux-x64/bin/node node-bin  # binary lives under bin/
+          mv node-v25.6.1-linux-x64/bin/node node-bin
           chmod +x node-bin
 
       - name: Build Linux SEA
@@ -64,11 +65,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions/setup-node@v3
         with:
           node-version: 25
-
       - uses: actions/download-artifact@v4
         with:
           name: bundle
@@ -78,7 +77,6 @@ jobs:
       - name: Build Windows SEA
         shell: pwsh
         run: |
-          # Copy node.exe first — --build-sea modifies the executable in-place
           $nodeSrc = (Get-Command node).Source
           Copy-Item $nodeSrc dist\roni.exe
 
@@ -102,7 +100,6 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions/download-artifact@v4
         with:
           name: bundle
@@ -111,10 +108,9 @@ jobs:
 
       - name: Download standalone Node
         run: |
-          # macos-latest runners are ARM64
           curl -fsSL https://nodejs.org/dist/v25.6.1/node-v25.6.1-darwin-arm64.tar.gz -o node.tar.gz
           tar -xf node.tar.gz
-          mv node-v25.6.1-darwin-arm64/bin/node node-bin  # binary lives under bin/
+          mv node-v25.6.1-darwin-arm64/bin/node node-bin
           chmod +x node-bin
 
       - name: Build macOS SEA
@@ -132,3 +128,43 @@ jobs:
         with:
           name: roni-macos
           path: dist/roni-macos
+
+  release-and-upload:
+    needs: [build-linux, build-windows, build-macos]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      # Create GitHub Release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/roni-linux/roni-linux
+            artifacts/roni-win/roni.exe
+            artifacts/roni-macos/roni-macos
+
+      # Authenticate to GCP
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      # Upload versioned binaries to GCS
+      - name: Upload to GCS
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+
+          gsutil cp artifacts/roni-linux/roni-linux gs://${{ secrets.GCS_BUCKET }}/$VERSION/roni-linux
+          gsutil cp artifacts/roni-win/roni.exe gs://${{ secrets.GCS_BUCKET }}/$VERSION/roni.exe
+          gsutil cp artifacts/roni-macos/roni-macos gs://${{ secrets.GCS_BUCKET }}/$VERSION/roni-macos
