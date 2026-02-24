@@ -6,8 +6,9 @@
   "bin": "main.js",
   "scripts": {
     "start": "electron . --no-sandbox",
-    "dev": "node --watch main.js"
-    },
+    "dev": "node --watch main.js",
+    "bundle": "rollup -c rollup.config.mjs"
+  },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
