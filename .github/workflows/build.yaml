@@ -40,7 +40,7 @@ jobs:
         run: |
           curl -fsSL https://nodejs.org/dist/v25.6.1/node-v25.6.1-linux-x64.tar.xz -o node.tar.xz
           tar -xf node.tar.xz
-          mv node-v25.6.1-linux-x64/node node-bin
+          mv node-v25.6.1-linux-x64/bin/node node-bin  # binary lives under bin/
           chmod +x node-bin
 
       - name: Build Linux SEA
@@ -78,11 +78,15 @@ jobs:
       - name: Build Windows SEA
         shell: pwsh
         run: |
+          # Copy node.exe first — --build-sea modifies the executable in-place
+          $nodeSrc = (Get-Command node).Source
+          Copy-Item $nodeSrc dist\roni.exe
+
           @"
           {
             "main": "bundle.js",
             "output": "dist/roni.exe",
-            "nodeExecutable": "$(Get-Command node).Source"
+            "nodeExecutable": "dist/roni.exe"
           }
           "@ | Out-File sea.json -Encoding UTF8
 
@@ -107,9 +111,10 @@ jobs:
 
       - name: Download standalone Node
         run: |
-          curl -fsSL https://nodejs.org/dist/v25.6.1/node-v25.6.1-darwin-x64.tar.gz -o node.tar.gz
+          # macos-latest runners are ARM64
+          curl -fsSL https://nodejs.org/dist/v25.6.1/node-v25.6.1-darwin-arm64.tar.gz -o node.tar.gz
           tar -xf node.tar.gz
-          mv node-v25.6.1-darwin-x64/node node-bin
+          mv node-v25.6.1-darwin-arm64/bin/node node-bin  # binary lives under bin/
           chmod +x node-bin
 
       - name: Build macOS SEA
