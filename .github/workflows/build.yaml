@@ -1,11 +1,12 @@
-name: Build Roni & Upload to GCS
+name: Build Roni & Upload 
 
 on:
   push:
     branches: [main]
 
 jobs:
-  build-and-upload:
+  build-linux:
+    name: Build Linux
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -14,7 +15,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: 20.4.0   # Node version with prebuilt binaries
 
       - name: Install dependencies
         run: npm ci
@@ -25,17 +26,7 @@ jobs:
       - name: Build Linux executable
         run: |
           mkdir -p dist
-          npx nexe src/main.js -t linux-x64-20.5.0 -o dist/roni -r "assets/**/*"
-
-      - name: Build Windows executable
-        run: |
-          mkdir -p dist
-          npx nexe src/main.js -t windows-x64-20.5.0 -o dist/Roni.exe -r "assets/**/*"
-
-      - name: Build macOS executable
-        run: |
-          mkdir -p dist
-          npx nexe src/main.js -t macos-x64-20.5.0 -o dist/Roni.app -r "assets/**/*"
+          npx nexe src/main.js -t linux-x64-20.4.0 -o dist/roni -r "assets/**/*"
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
@@ -43,6 +34,69 @@ jobs:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           project_id: your-gcp-project-id
 
-      - name: Upload to GCS
+      - name: Upload Linux executable to GCS
+        run: gsutil cp dist/roni gs://your-bucket-name/roni-builds/roni-linux
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.4.0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Nexe
+        run: npm install -g nexe
+
+      - name: Build Windows executable
         run: |
-          gsutil -m cp -r dist/* gs://your-bucket-name/builds/roni
+          mkdir dist
+          npx nexe src/main.js -t windows-x64-20.4.0 -o dist/Roni.exe -r "assets/**/*"
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: your-gcp-project-id
+
+      - name: Upload Windows executable to GCS
+        run: gsutil cp dist/Roni.exe gs://your-bucket-name/roni-builds/Roni-windows.exe
+
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.4.0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Nexe
+        run: npm install -g nexe
+
+      - name: Build macOS executable
+        run: |
+          mkdir -p dist
+          npx nexe src/main.js -t macos-x64-20.4.0 -o dist/Roni.app -r "assets/**/*"
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: your-gcp-project-id
+
+      - name: Upload macOS executable to GCS
+        run: gsutil cp -r dist/Roni.app gs://your-bucket-name/roni-builds/Roni-macos
