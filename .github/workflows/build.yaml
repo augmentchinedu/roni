@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  # Step 1: Bundle once (runs on Linux)
+  # Step 1: Bundle once (Linux runner)
   bundle:
     runs-on: ubuntu-latest
     outputs:
@@ -27,7 +27,7 @@ jobs:
         id: bundle
         run: |
           npm run bundle
-          echo "bundle-path=${GITHUB_WORKSPACE}/bundle.js" >> $GITHUB_OUTPUT
+          echo "bundle=${GITHUB_WORKSPACE}/bundle.js" >> $GITHUB_OUTPUT
 
   # Step 2: Build Linux binary
   build-linux:
@@ -40,9 +40,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '25'
-
-      - name: Copy bundle
-        run: cp ${{ needs.bundle.outputs.bundle-path }} $GITHUB_WORKSPACE/bundle.js
 
       - name: Build Linux SEA
         run: node --build-sea ${{ github.workspace }}/sea-config-linux.json
@@ -65,9 +62,6 @@ jobs:
         with:
           node-version: '25'
 
-      - name: Copy bundle
-        run: copy ${{ github.workspace }}\bundle.js $GITHUB_WORKSPACE\bundle.js
-
       - name: Build Windows SEA
         run: node --build-sea ${{ github.workspace }}/sea-config-windows.json
 
@@ -88,9 +82,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '25'
-
-      - name: Copy bundle
-        run: cp ${{ github.workspace }}/bundle.js $GITHUB_WORKSPACE/bundle.js
 
       - name: Build macOS SEA
         run: node --build-sea ${{ github.workspace }}/sea-config-macos.json
