@@ -1,120 +1,56 @@
-name: Build & Upload Roni
+name: Build SEA binaries
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build-linux:
-    name: Build Linux
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js 22
+      - uses: actions/checkout@v3
+      - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Nexe
-        run: npm install -g nexe
-
-      - name: Install build tools (if needed)
-        run: sudo apt-get update && sudo apt-get install -y python3 build-essential
-
-      - name: Build Linux executable
-        run: |
-          mkdir -p dist
-          npx nexe src/main.js \
-            -t linux-x64-22.3.0 \
-            -o dist/roni-linux \
-            --build
-
-      - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v2
+          node-version: '25'
+      - run: npm ci
+      - run: npm run bundle
+      - run: node --build-sea sea-congig-linux.json  # Linux SEA build
+      - uses: actions/upload-artifact@v3
         with:
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: great-unknown
-
-      - name: Upload Linux executable to GCS
-        run: gsutil cp dist/roni-linux gs://your-bucket-name/roni-builds/roni-linux
+          name: roni-linux
+          path: dist/roni-linux
 
   build-windows:
-    name: Build Windows
     runs-on: windows-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js 22
+      - uses: actions/checkout@v3
+      - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Nexe
-        run: npm install -g nexe
-
-      - name: Build Windows executable
-        run: |
-          mkdir dist
-          npx nexe src/main.js ` 
-            -t windows-x64-22.3.0 ` 
-            -o dist/Roni.exe ` 
-            --build
-
-      - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v2
+          node-version: '25'
+      - run: npm ci
+      - run: npm run bundle
+      - run: node --build-sea sea-congig-windows.json  # Windows SEA build
+      - uses: actions/upload-artifact@v3
         with:
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: great-unknown
-
-      - name: Upload Windows executable to GCS
-        run: gsutil cp dist/Roni.exe gs://your-bucket-name/roni-builds/Roni.exe
+          name: roni-win
+          path: dist/roni.exe
 
   build-macos:
-    name: Build macOS
     runs-on: macos-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js 22
+      - uses: actions/checkout@v3
+      - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Nexe
-        run: npm install -g nexe
-
-      - name: Prepare macOS build environment
-        run: |
-          # Ensure Xcode CLI tools are installed
-          xcode-select --install || true
-          # Ensure Python 3 is available
-          brew install python@3 || true
-
-      - name: Build macOS executable
-        run: |
-          mkdir -p dist
-          npx nexe src/main.js \
-            -t macos-x64-22.3.0 \
-            -o dist/Roni.app
-
-      - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v2
+          node-version: '25'
+      - run: npm ci
+      - run: npm run bundle
+      - run: node --build-sea sea-congig-macos.json  # macOS SEA build
+      - uses: actions/upload-artifact@v3
         with:
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: great-unknown
-
-      - name: Upload macOS executable to GCS
-        run: gsutil -m cp -r dist/Roni.app gs://your-bucket-name/roni-builds/Roni.app
+          name: roni-macos
+          path: dist/roni-macos

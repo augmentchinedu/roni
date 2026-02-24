@@ -6,15 +6,15 @@
   "bin": "main.js",
   "scripts": {
     "start": "electron . --no-sandbox",
-    "dev": "node --watch main.js",
-    "build": "npx nexe -c nexe.config.js"
-  },
+    "dev": "node --watch main.js"
+    },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "morgan": "^1.10.1"
   },
   "devDependencies": {
-    "pkg": "^5.8.1"
+    "pkg": "^5.8.1",
+    "rollup": "^4.59.0"
   }
 }
