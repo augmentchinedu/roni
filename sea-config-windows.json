@@ -1,6 +1,4 @@
 {
   "main": "bundle.js",
-  "output": "dist/roni-macos",
-  "nodeExecutable": "/home/user/.nvm/versions/node/v25.6.1/bin/node"
-
+  "output": "dist/roni.exe"
 }

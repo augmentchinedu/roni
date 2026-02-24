@@ -1,5 +1,4 @@
 {
   "main": "bundle.js",
-  "output": "dist/roni-linux",
-  "nodeExecutable": "/home/user/.nvm/versions/node/v25.6.1/bin/node"
+  "output": "dist/roni-linux"
 }
