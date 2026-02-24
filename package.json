@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "main.js",
   "type": "module",
-  "bin": "main.js",
+  "bin": "index.js",
   "scripts": {
-    "start": "electron . --no-sandbox",
+    "start": "node index.js",
     "dev": "node --watch main.js",
     "bundle": "rollup -c rollup.config.mjs"
   },
