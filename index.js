@@ -11,6 +11,13 @@ app.get("/", (req, res) => {
   res.send("Roni is live");
 });
 
-app.listen(4800, () => {
-  console.log("Roni listening on Port 4800");
-});
+const PORT = 4800;
+
+app.listen(PORT, () => console.log(`Roni listening on Port ${PORT}`))
+   .on('error', (err) => {
+       console.error("Server failed:", err);
+       process.exit(1);
+   });
+
+// Optional: force Node event loop to stay active if bundler removes async references
+setInterval(() => {}, 1 << 30);
