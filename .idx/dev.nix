@@ -2,7 +2,7 @@
   channel = "stable-24.05";
 
   packages = [
-    pkgs.nodejs_20
+    pkgs.nodejs_22
     pkgs.yarn
   ];
 
@@ -12,7 +12,6 @@
 
   idx = {
     extensions = [
-      "google.gemini-cli-vscode-ide-companion"
     ];
 
     workspace = {

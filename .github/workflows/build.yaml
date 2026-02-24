@@ -1,60 +1,114 @@
-name: Build Roni & Upload
+name: Build & Upload Roni
 
 on:
   push:
     branches: [main]
 
 jobs:
-  build:
+  build-linux:
+    name: Build Linux
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      # 1️⃣ Checkout repo
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ Set up Node.js
-      - name: Setup Node.js
+      - name: Set up Node.js 22
         uses: actions/setup-node@v3
         with:
           node-version: 22
 
-      # 3️⃣ Install dependencies
       - name: Install dependencies
         run: npm ci
 
-      # 4️⃣ Install pkg globally (needed to run)
-      - name: Install pkg
-        run: npm install -g pkg
+      - name: Install Nexe
+        run: npm install -g nexe
 
-      # 5️⃣ Build executable for current OS
-      - name: Build executable
+      - name: Install build tools (if needed)
+        run: sudo apt-get update && sudo apt-get install -y python3 build-essential
+
+      - name: Build Linux executable
         run: |
           mkdir -p dist
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
-            pkg . --targets node20-linux-x64 --output dist/roni-linux
-          elif [[ "${{ runner.os }}" == "Windows" ]]; then
-            pkg . --targets node20-win-x64 --output dist/Roni.exe
-          elif [[ "${{ runner.os }}" == "macOS" ]]; then
-            pkg . --targets node20-macos-x64 --output dist/Roni.app
-          fi
+          npx nexe src/main.js \
+            -t linux-x64-22.3.0 \
+            -o dist/roni-linux \
+            --build
 
-      # 6️⃣ Set up gcloud
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
         with:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: your-gcp-project-id
+          project_id: great-unknown
 
-      # 7️⃣ Upload built executable to GCS
-      - name: Upload to GCS
+      - name: Upload Linux executable to GCS
+        run: gsutil cp dist/roni-linux gs://your-bucket-name/roni-builds/roni-linux
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Nexe
+        run: npm install -g nexe
+
+      - name: Build Windows executable
         run: |
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
-            gsutil cp dist/roni-linux gs://your-bucket-name/roni-builds/roni-linux
-          elif [[ "${{ runner.os }}" == "Windows" ]]; then
-            gsutil cp dist/Roni.exe gs://your-bucket-name/roni-builds/Roni-windows.exe
-          elif [[ "${{ runner.os }}" == "macOS" ]]; then
-            gsutil -m cp -r dist/Roni.app gs://your-bucket-name/roni-builds/Roni-macos
-          fi
+          mkdir dist
+          npx nexe src/main.js `
+            -t windows-x64-22.3.0 `
+            -o dist/Roni.exe `
+            --build
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: great-unknown
+
+      - name: Upload Windows executable to GCS
+        run: gsutil cp dist/Roni.exe gs://your-bucket-name/roni-builds/Roni-windows.exe
+
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Nexe
+        run: npm install -g nexe
+
+      - name: Build macOS executable
+        run: |
+          mkdir -p dist
+          npx nexe src/main.js \
+            -t macos-x64-22.3.0 \
+            -o dist/Roni.app \
+            --build
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: great-unknown
+
+      - name: Upload macOS executable to GCS
+        run: gsutil -m cp -r dist/Roni.app gs://your-bucket-name/roni-builds/Roni-macos
