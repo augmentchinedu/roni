@@ -1,3 +1,4 @@
+# .github/workflows/build-sea.yml
 name: Build Roni SEA Binaries
 
 on:
@@ -7,7 +8,7 @@ on:
     branches: [ main ]
 
 jobs:
-  # Step 1: Bundle once
+  # Step 1: Bundle JS once (Linux runner)
   bundle:
     runs-on: ubuntu-latest
     outputs:
@@ -36,27 +37,24 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '25'
-
       - name: Ensure dist folder exists
         run: mkdir -p dist
 
+      - name: Set Node path
+        run: echo "NODE_PATH=$(which node)" >> $GITHUB_ENV
+
       - name: Generate Linux SEA config
         run: |
-          NODE_PATH=$(which node)
-          cat > sea-config-linux.json <<'EOL'
-{
-  "main": "bundle.js",
-  "output": "dist/roni-linux",
-  "nodeExecutable": "'"$NODE_PATH"'"
-}
-EOL
+          cat > sea-config-linux.json <<EOL
+          {
+            "main": "bundle.js",
+            "output": "dist/roni-linux",
+            "nodeExecutable": "$NODE_PATH"
+          }
+          EOL
 
       - name: Build Linux SEA
-        run: node --build-sea ${{ github.workspace }}/sea-config-linux.json
+        run: node --build-sea sea-config-linux.json
 
       - name: Upload Linux binary
         uses: actions/upload-artifact@v4
@@ -80,17 +78,19 @@ EOL
         run: mkdir dist
 
       - name: Generate Windows SEA config
-        shell: pwsh
         run: |
-          $json = @{
-            main = "bundle.js"
-            output = "dist/roni.exe"
-            nodeExecutable = "C:\hostedtoolcache\windows\node\25.6.1\x64\node.exe"
-          } | ConvertTo-Json
-          $json | Set-Content -Path sea-config-windows.json -Encoding UTF8
+          $json = @"
+{
+  "main": "bundle.js",
+  "output": "dist/roni.exe",
+  "nodeExecutable": "C:\\hostedtoolcache\\windows\\node\\25.6.1\\x64\\node.exe"
+}
+"@
+          $json | Out-File -FilePath sea-config-windows.json -Encoding UTF8
+        shell: pwsh
 
       - name: Build Windows SEA
-        run: node --build-sea ${{ github.workspace }}/sea-config-windows.json
+        run: node --build-sea sea-config-windows.json
 
       - name: Upload Windows binary
         uses: actions/upload-artifact@v4
@@ -105,27 +105,24 @@ EOL
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '25'
-
       - name: Ensure dist folder exists
         run: mkdir -p dist
 
+      - name: Set Node path
+        run: echo "NODE_PATH=$(which node)" >> $GITHUB_ENV
+
       - name: Generate macOS SEA config
         run: |
-          NODE_PATH=$(which node)
-          cat > sea-config-macos.json <<'EOL'
-{
-  "main": "bundle.js",
-  "output": "dist/roni-macos",
-  "nodeExecutable": "'"$NODE_PATH"'"
-}
-EOL
+          cat > sea-config-macos.json <<EOL
+          {
+            "main": "bundle.js",
+            "output": "dist/roni-macos",
+            "nodeExecutable": "$NODE_PATH"
+          }
+          EOL
 
       - name: Build macOS SEA
-        run: node --build-sea ${{ github.workspace }}/sea-config-macos.json
+        run: node --build-sea sea-config-macos.json
 
       - name: Upload macOS binary
         uses: actions/upload-artifact@v4
