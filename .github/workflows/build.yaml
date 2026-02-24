@@ -7,37 +7,55 @@ on:
     branches: [ main ]
 
 jobs:
-  build-linux:
+  # Step 1: Bundle once (runs on Linux)
+  bundle:
     runs-on: ubuntu-latest
+    outputs:
+      bundle-path: ${{ steps.bundle.outputs.bundle }}
     steps:
       - uses: actions/checkout@v3
 
-      # Install Node 25
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
           node-version: '25'
 
-      # Install dependencies
-      - run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-      # Bundle ESM code with Rollup
       - name: Bundle with Rollup
-        run: npm run bundle
+        id: bundle
+        run: |
+          npm run bundle
+          echo "bundle-path=${GITHUB_WORKSPACE}/bundle.js" >> $GITHUB_OUTPUT
 
-      # Build Linux SEA binary
+  # Step 2: Build Linux binary
+  build-linux:
+    needs: bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '25'
+
+      - name: Copy bundle
+        run: cp ${{ needs.bundle.outputs.bundle-path }} $GITHUB_WORKSPACE/bundle.js
+
       - name: Build Linux SEA
-        run: node --build-sea sea-config-linux.json
-        working-directory: ${{ github.workspace }}
+        run: node --build-sea ${{ github.workspace }}/sea-config-linux.json
 
-      # Upload artifact
       - name: Upload Linux binary
         uses: actions/upload-artifact@v4
         with:
           name: roni-linux
           path: dist/roni-linux
 
+  # Step 3: Build Windows binary
   build-windows:
+    needs: bundle
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
@@ -47,14 +65,11 @@ jobs:
         with:
           node-version: '25'
 
-      - run: npm ci
-
-      - name: Bundle with Rollup
-        run: npm run bundle
+      - name: Copy bundle
+        run: copy ${{ github.workspace }}\bundle.js $GITHUB_WORKSPACE\bundle.js
 
       - name: Build Windows SEA
-        run: node --build-sea sea-config-windows.json
-        working-directory: ${{ github.workspace }}
+        run: node --build-sea ${{ github.workspace }}/sea-config-windows.json
 
       - name: Upload Windows binary
         uses: actions/upload-artifact@v4
@@ -62,7 +77,9 @@ jobs:
           name: roni-win
           path: dist/roni.exe
 
+  # Step 4: Build macOS binary
   build-macos:
+    needs: bundle
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
@@ -72,14 +89,11 @@ jobs:
         with:
           node-version: '25'
 
-      - run: npm ci
-
-      - name: Bundle with Rollup
-        run: npm run bundle
+      - name: Copy bundle
+        run: cp ${{ github.workspace }}/bundle.js $GITHUB_WORKSPACE/bundle.js
 
       - name: Build macOS SEA
-        run: node --build-sea sea-config-macos.json
-        working-directory: ${{ github.workspace }}
+        run: node --build-sea ${{ github.workspace }}/sea-config-macos.json
 
       - name: Upload macOS binary
         uses: actions/upload-artifact@v4
