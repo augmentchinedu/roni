@@ -1,23 +1,14 @@
-import express from "express";
-import morgan from "morgan";
-import cors from "cors";
+import { Hono } from 'hono';
+import { serve } from '@hono/node-server';
 
-const app = express();
+const app = new Hono();
+const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(morgan('tiny'));
+app.get('/', (c) => c.json({ name: 'Roni', status: 'running' }));
 
-app.get("/", (req, res) => {
-  res.send("Roni is live");
+serve({ fetch: app.fetch, port: PORT }, () => {
+  console.log(`Roni OS listening on port ${PORT}`);
 });
 
-const PORT = 4800;
-
-app.listen(PORT, () => console.log(`Roni listening on Port ${PORT}`))
-   .on('error', (err) => {
-       console.error("Server failed:", err);
-       process.exit(1);
-   });
-
-// Optional: force Node event loop to stay active if bundler removes async references
-setInterval(() => {}, 1 << 30);
+process.on('uncaughtException', (err) => console.error('Uncaught:', err));
+process.on('unhandledRejection', (reason) => console.error('Unhandled:', reason));

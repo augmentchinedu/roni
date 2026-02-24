@@ -1,20 +1,23 @@
 {
   "name": "roni",
   "version": "1.0.0",
-  "main": "main.js",
   "type": "module",
-  "bin": "index.js",
+  "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch main.js",
     "bundle": "rollup -c rollup.config.mjs"
   },
   "dependencies": {
+    "@hono/node-server": "^1.19.9",
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "hono": "^4.12.2",
     "morgan": "^1.10.1"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "pkg": "^5.8.1",
     "rollup": "^4.59.0"
   }
