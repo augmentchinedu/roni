@@ -22,6 +22,7 @@
     "lint": "eslint . --ext .js,.vue"
   },
   "dependencies": {
+    "@rollup/plugin-json": "^6.1.0",
     "pinia": "^2.1.0",
     "vue": "^3.4.0",
     "ws": "^8.18.0"

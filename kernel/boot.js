@@ -1,14 +1,12 @@
 /**
- * kernel/boot.js — SEA-SAFE Roni OS kernel entry
+ * kernel/boot.js — Roni OS kernel entry point.
  */
 
-console.log(">>> Roni SEA boot starting...");
-
-import { readFile, createReadStream, existsSync } from "node:fs";
-import { spawn, execSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { resolve, dirname, join, extname } from "node:path";
-
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Bus } from "./ipc/bus.js";
 import { VFS } from "./fs/vfs.js";
 import { ProcessManager } from "./proc/manager.js";
@@ -16,159 +14,264 @@ import { DisplayService } from "./hw/display.js";
 import { PowerService } from "./power/manager.js";
 import { SessionService } from "./auth/session.js";
 
-/* ───────────────────────────────────────────────────────────── */
-/* SEA-SAFE ROOT RESOLUTION                                      */
-/* ───────────────────────────────────────────────────────────── */
-
-const ROOT = dirname(process.execPath);
+// ── ROOT resolution: works in normal Node AND as a SEA ──────────────────────
+// In a SEA, import.meta.url is unavailable. We detect SEA by checking whether
+// the argv[1] equals the execPath (i.e. the script IS the executable).
+let __dirname_resolved;
+try {
+  __dirname_resolved = dirname(fileURLToPath(import.meta.url));
+} catch {
+  // SEA fallback: use directory of the executable itself
+  __dirname_resolved = dirname(process.execPath);
+}
+const IS_SEA = process.argv[1] === process.execPath || !import.meta.url?.startsWith('file:');
+const ROOT   = IS_SEA
+  ? dirname(process.execPath)          // SEA: config/dist sit next to .exe
+  : resolve(__dirname_resolved, ".."); // normal: one level up from kernel/
 const IS_DEV = process.argv.includes("--dev");
 
-/* ───────────────────────────────────────────────────────────── */
-/* CONFIG LOADER                                                 */
-/* ───────────────────────────────────────────────────────────── */
+// ── Config ───────────────────────────────────────────────────────────────────
 
 async function loadConfig() {
   try {
     const raw = await readFile(resolve(ROOT, "config", "system.json"), "utf8");
     return JSON.parse(raw);
-  } catch (err) {
-    console.warn("[boot] No system.json found. Using defaults.");
+  } catch {
+    console.warn("[boot] No system.json found, using defaults");
     return {
       display: { platform: "wayland", width: 1920, height: 1080 },
       compositor: { port: 7700 },
-      chromium: {}
+      chromium: {},
     };
   }
 }
 
-/* ───────────────────────────────────────────────────────────── */
-/* KERNEL SERVICES                                               */
-/* ───────────────────────────────────────────────────────────── */
+// ── Kernel Services ───────────────────────────────────────────────────────────
 
 class KernelServices {
   constructor(config) {
-    this.config = config;
-    this.bus = new Bus(config);
-    this.vfs = new VFS(config);
-    this.proc = new ProcessManager(config, this.bus);
+    this.config  = config;
+    this.bus     = new Bus(config);
+    this.vfs     = new VFS(config);
+    this.proc    = new ProcessManager(config, this.bus);
     this.display = new DisplayService(config, this.bus);
-    this.power = new PowerService(config, this.bus);
+    this.power   = new PowerService(config, this.bus);
     this.session = new SessionService(config, this.bus);
   }
 
   async start() {
-    console.log("[kernel] Starting services...");
+    console.log("[kernel] Starting Roni kernel services...");
     await this.bus.start();
     await this.vfs.start();
     await this.proc.start();
     await this.display.start();
     await this.power.start();
     await this.session.start();
-    console.log("[kernel] Services ready.");
+    this.registerHandlers();
+    console.log("[kernel] All services started.");
+  }
+
+  registerHandlers() {
+    this.bus.on("compositor:ready", async () => {
+      console.log("[kernel] Compositor ready. Sending session info.");
+      this.bus.send({
+        to: "compositor", type: "event", domain: "kernel", method: "session:start",
+        payload: {
+          display: await this.display.getInfo(),
+          session: await this.session.getCurrent(),
+        },
+      });
+    });
+    this.bus.on("power:shutdown", () => this.power.shutdown());
+    this.bus.on("power:reboot",   () => this.power.reboot());
+    this.bus.on("power:sleep",    () => this.power.sleep());
+    process.on("uncaughtException", (err) => console.error("[kernel] Uncaught exception:", err));
   }
 }
 
-/* ───────────────────────────────────────────────────────────── */
-/* CHROMIUM DETECTION                                            */
-/* ───────────────────────────────────────────────────────────── */
+// ── Chromium detection + auto-download ───────────────────────────────────────
 
-function findChromium(config) {
-  if (config.chromium?.bin) return config.chromium.bin;
+const CHROMIUM_CANDIDATES = {
+  win32: [
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files\\Chromium\\Application\\chrome.exe",
+    `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`,
+    `${process.env.LOCALAPPDATA}\\Chromium\\Application\\chrome.exe`,
+    `${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`,
+  ],
+  darwin: [
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+  ],
+  linux: [
+    "chromium-browser","chromium","google-chrome",
+    "google-chrome-stable","/usr/bin/chromium-browser",
+    "/usr/bin/chromium","/usr/bin/google-chrome",
+  ],
+};
 
-  const candidates = process.platform === "win32"
-    ? [
-        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
-      ]
-    : process.platform === "darwin"
-    ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
-    : ["chromium-browser", "chromium", "google-chrome"];
+async function findChromium(config) {
+  if (config.chromium?.bin?.length > 0) {
+    console.log(`[boot] Using configured Chromium: ${config.chromium.bin}`);
+    return config.chromium.bin;
+  }
+  const { execSync } = await import("node:child_process");
+  const { existsSync } = await import("node:fs");
+  const platform = process.platform;
+  const candidates = CHROMIUM_CANDIDATES[platform] ?? CHROMIUM_CANDIDATES.linux;
 
   for (const c of candidates) {
     try {
-      if (c.includes("\\") || c.includes("/")) {
-        if (existsSync(c)) return c;
+      if (c.includes("/") || c.includes("\\")) {
+        if (existsSync(c)) { console.log(`[boot] Found Chromium: ${c}`); return c; }
       } else {
-        execSync(process.platform === "win32" ? `where "${c}"` : `which "${c}"`);
-        return c;
+        execSync(platform === "win32" ? `where "${c}"` : `which "${c}"`, { stdio: "ignore" });
+        console.log(`[boot] Found Chromium in PATH: ${c}`); return c;
       }
-    } catch {}
+    } catch { /* try next */ }
   }
-
   return null;
 }
 
-function buildChromiumArgs(port) {
-  const url = `http://localhost:${port}`;
-  return [
-    `--app=${url}`,
-    "--kiosk",
-    "--no-first-run",
-    "--no-default-browser-check",
-    "--disable-infobars"
-  ];
-}
-
-function spawnChromium(config, port) {
-  const bin = findChromium(config);
-
-  if (!bin) {
-    console.error("[boot] Chromium not found.");
+async function downloadChromium() {
+  console.log("[boot] Chromium not found. Auto-downloading via @puppeteer/browsers...");
+  try {
+    const { execSync } = await import("node:child_process");
+    const cacheDir = resolve(ROOT, ".chromium");
+    execSync("npm install --no-save @puppeteer/browsers", { cwd: ROOT, stdio: "inherit" });
+    const { install, Browser } = await import("@puppeteer/browsers");
+    const platform = process.platform === "win32" ? "win64"
+      : process.platform === "darwin" ? "mac" : "linux";
+    console.log(`[boot] Downloading Chrome for ${platform}...`);
+    const result = await install({
+      browser: Browser.CHROME,
+      buildId: "stable",
+      cacheDir,
+      downloadProgressCallback: (dl, total) => {
+        process.stdout.write(`\r[boot] Downloading Chrome... ${total ? Math.round((dl/total)*100) : "?"}%`);
+      },
+    });
+    process.stdout.write("\n");
+    console.log(`[boot] Chrome downloaded: ${result.executablePath}`);
+    return result.executablePath;
+  } catch (err) {
+    console.error("[boot] Auto-download failed:", err.message);
+    console.error("[boot] Install Chrome manually: https://www.google.com/chrome/");
     process.exit(1);
   }
-
-  console.log("[boot] Launching Chromium...");
-
-  const child = spawn(bin, buildChromiumArgs(port), {
-    windowsHide: false
-  });
-
-  child.on("exit", (code) => {
-    console.warn(`[boot] Chromium exited (${code})`);
-  });
-
-  child.on("error", (err) => {
-    console.error("[boot] Chromium failed:", err.message);
-  });
 }
 
-/* ───────────────────────────────────────────────────────────── */
-/* COMPOSITOR SERVER                                             */
-/* ───────────────────────────────────────────────────────────── */
+function buildChromiumArgs(config, port) {
+  const url  = IS_DEV ? `http://localhost:${config.compositor?.devPort ?? 5173}` : `http://localhost:${port}`;
+  const isWin = process.platform === "win32";
+  const isMac = process.platform === "darwin";
+
+  const args = [
+    `--app=${url}`,
+    "--start-fullscreen",
+    "--disable-infobars",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-translate",
+    "--disable-features=TranslateUI",
+    "--noerrdialogs",
+    "--kiosk",
+  ];
+
+  if (!isWin) args.push("--class=Roni", "--name=Roni");
+
+  if (!IS_DEV && !isWin && !isMac) {
+    const p = config.display?.platform ?? "wayland";
+    args.push(`--ozone-platform=${p}`);
+    if (p === "drm") args.push("--use-gl=egl", "--enable-features=UseOzonePlatform");
+  }
+
+  if (isWin) args.push("--disable-gpu-sandbox", "--no-sandbox");
+
+  return args;
+}
+
+async function spawnChromium(config, port) {
+  let bin = await findChromium(config);
+  if (!bin) bin = await downloadChromium();
+
+  const args = buildChromiumArgs(config, port);
+  console.log(`[boot] Launching: ${bin.split(/[/\\]/).pop()} ${args[0]}`);
+
+  const child = spawn(bin, args, {
+    stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, ...(process.env.DISPLAY ? {} : { DISPLAY: ":0" }) },
+    detached: false,
+    // Windows: don't show a second console window
+    windowsHide: false,
+  });
+
+  child.stdout.on("data", (d) => process.stdout.write(`[chromium] ${d}`));
+  child.stderr.on("data", (d) => {
+    const msg = d.toString();
+    if (["Failed to connect to the bus","Missing X server","MESA","dri","DevTools"].some(s => msg.includes(s))) return;
+    process.stderr.write(`[chromium:err] ${msg}`);
+  });
+
+  child.on("exit", (code, signal) => {
+    console.warn(`[boot] Chromium exited (code=${code} signal=${signal})`);
+    if (code !== 0 && code !== null) {
+      console.log("[boot] Restarting Chromium in 2s...");
+      setTimeout(() => spawnChromium(config, port), 2000);
+    } else {
+      console.log("[boot] Clean exit. Halting.");
+      process.exit(0);
+    }
+  });
+
+  // Keep Node alive — don't let it exit just because spawn returned
+  child.on("error", (err) => {
+    console.error(`[boot] Failed to launch Chromium: ${err.message}`);
+    console.log("[boot] Retrying in 3s...");
+    setTimeout(() => spawnChromium(config, port), 3000);
+  });
+
+  return child;
+}
+
+// ── Compositor HTTP server ────────────────────────────────────────────────────
 
 async function startCompositorServer(config) {
+  const { createReadStream, existsSync } = await import("node:fs");
+  const { extname, join } = await import("node:path");
   const port = config.compositor?.port ?? 7700;
-  const root = resolve(ROOT, "compositor", "dist");
+  const compositorRoot = resolve(ROOT, "compositor", "dist");
 
-  if (!existsSync(root)) {
-    console.error("[boot] compositor/dist not found.");
+  if (!existsSync(compositorRoot)) {
+    console.error(`[boot] compositor/dist not found at ${compositorRoot}`);
+    console.error("[boot] Run 'npm run build' first.");
     process.exit(1);
   }
 
   const MIME = {
-    ".html": "text/html",
-    ".js": "application/javascript",
-    ".css": "text/css",
-    ".svg": "image/svg+xml",
-    ".json": "application/json",
-    ".png": "image/png",
-    ".ico": "image/x-icon"
+    ".html":"text/html", ".js":"application/javascript",
+    ".css":"text/css",   ".svg":"image/svg+xml",
+    ".json":"application/json", ".png":"image/png",
+    ".ico":"image/x-icon", ".woff2":"font/woff2",
   };
 
   const server = createServer((req, res) => {
-    const path = req.url === "/" ? "/index.html" : req.url.split("?")[0];
-    const file = join(root, path);
+    const urlPath = req.url === "/" ? "/index.html" : req.url.split("?")[0];
+    const filePath = join(compositorRoot, urlPath);
+    const ext  = extname(filePath);
+    const mime = MIME[ext] ?? "application/octet-stream";
 
-    const ext = extname(file);
-    res.setHeader("Content-Type", MIME[ext] || "application/octet-stream");
-
-    const stream = createReadStream(file);
-
+    const stream = createReadStream(filePath);
     stream.on("error", () => {
-      const fallback = createReadStream(join(root, "index.html"));
+      // SPA fallback — serve index.html for unknown routes
+      const fallback = createReadStream(join(compositorRoot, "index.html"));
+      res.setHeader("Content-Type", "text/html");
+      res.writeHead(200);
       fallback.pipe(res);
     });
-
+    res.setHeader("Content-Type", mime);
+    res.writeHead(200);
     stream.pipe(res);
   });
 
@@ -177,37 +280,38 @@ async function startCompositorServer(config) {
     server.on("error", reject);
   });
 
-  console.log(`[boot] Compositor running at http://localhost:${port}`);
+  console.log(`[boot] Compositor server: http://localhost:${port}`);
   return port;
 }
 
-/* ───────────────────────────────────────────────────────────── */
-/* MAIN                                                          */
-/* ───────────────────────────────────────────────────────────── */
+// ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
   process.title = "Roni";
-
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("Roni OS — SEA Boot");
-  console.log(`Node ${process.version}`);
-  console.log(`ROOT: ${ROOT}`);
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("  Roni OS — Booting");
+  console.log(`  Node ${process.version} · ${IS_SEA ? "SEA" : "ESM"} · ${IS_DEV ? "DEV" : "PROD"}`);
+  console.log(`  ROOT: ${ROOT}`);
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
   const config = await loadConfig();
-
   const kernel = new KernelServices(config);
   await kernel.start();
 
-  const port = await startCompositorServer(config);
+  let port = config.compositor?.port ?? 7700;
+  if (!IS_DEV) {
+    port = await startCompositorServer(config);
+  } else {
+    console.log("[boot] DEV mode — open http://localhost:5173 in your browser.");
+  }
 
-  spawnChromium(config, port);
+  await spawnChromium(config, port);
 
-  // CRITICAL: keep SEA process alive
+  // Explicitly keep Node alive (important for SEA on Windows)
   process.stdin.resume();
 }
 
 main().catch((err) => {
-  console.error("[boot] Fatal:", err);
+  console.error("[boot] Fatal error during boot:", err);
   process.exit(1);
 });
