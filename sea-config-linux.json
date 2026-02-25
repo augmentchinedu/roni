@@ -1,5 +1,0 @@
-{
-  "main": "bundle.js",
-  "output": "dist/roni-linux",
-  "nodeExecutable": "$NODE_PATH"
-}

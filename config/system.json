@@ -1,0 +1,33 @@
+{
+  "display": {
+    "platform": "wayland",
+    "width": 1920,
+    "height": 1080,
+    "dpi": 96,
+    "scale": 1
+  },
+  "compositor": {
+    "port": 7700,
+    "devPort": 5173
+  },
+  "ipc": {
+    "port": 7701
+  },
+  "chromium": {
+    "bin": "chromium-browser",
+    "flags": []
+  },
+  "power": {
+    "sleepAfterMinutes": 15,
+    "hibernateAfterMinutes": 60
+  },
+  "shell": {
+    "theme": "dark",
+    "accentColor": "#5B8BFF",
+    "wallpaper": "/roni/assets/wallpaper.jpg",
+    "dock": {
+      "position": "bottom",
+      "autohide": false
+    }
+  }
+}

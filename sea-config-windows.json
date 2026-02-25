@@ -1,5 +1,0 @@
-{
-  "main": "bundle.js",
-  "output": "dist/roni.exe",
-  "nodeExecutable": "C:\\hostedtoolcache\\windows\\node\\25.6.1\\x64\\node.exe"
-}

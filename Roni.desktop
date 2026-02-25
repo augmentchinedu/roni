@@ -1,0 +1,46 @@
+[Desktop Entry]
+# ─────────────────────────────────────────────────────────────
+# Roni OS — Linux Desktop Entry
+#
+# Install locations:
+#   System-wide:  /usr/share/applications/Roni.desktop
+#   Current user: ~/.local/share/applications/Roni.desktop
+#
+# The StartupWMClass MUST match --class=Roni passed to Chromium.
+# This is what tells GNOME, KDE, XFCE, i3, etc. to show the
+# Roni icon instead of the Chromium icon in the taskbar.
+# ─────────────────────────────────────────────────────────────
+
+Type=Application
+Version=1.0
+
+Name=Roni
+GenericName=Roni OS
+Comment=Roni Operating System
+
+# Path to your icon — SVG preferred (scales to any size)
+# Place icon at /usr/share/icons/hicolor/scalable/apps/roni.svg
+# and run: gtk-update-icon-cache /usr/share/icons/hicolor
+Icon=roni
+
+# The entry point — Node boots Chromium
+Exec=node /kernel/boot.js
+
+# Working directory
+Path=/
+
+# Don't show a terminal window
+Terminal=false
+
+# Application categories
+Categories=System;
+
+# ── Taskbar grouping (the critical part) ──────────────────────
+# Must exactly match the --class= flag passed to Chromium in boot.js
+StartupWMClass=Roni
+
+# Notify the desktop that the app will set its own window title
+StartupNotify=false
+
+# Only show in these desktop environments (optional — remove to show everywhere)
+# OnlyShowIn=GNOME;KDE;XFCE;

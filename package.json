@@ -1,24 +1,36 @@
 {
   "name": "roni",
-  "version": "1.0.0",
+  "version": "0.2.0",
+  "description": "Roni OS — Node + Chromium + Vue desktop operating system",
   "type": "module",
-  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "kernel",
+    "compositor",
+    "sdk",
+    "apps/*"
+  ],
   "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch main.js",
-    "bundle": "rollup -c rollup.config.mjs"
+    "dev": "npm run dev:kernel & npm run dev:compositor",
+    "dev:kernel": "node --watch kernel/boot.js --dev",
+    "dev:compositor": "vite compositor",
+    "build": "npm run build:compositor && npm run build:sdk",
+    "build:compositor": "vite build compositor",
+    "build:sdk": "node scripts/build-sdk.js",
+    "boot": "node kernel/boot.js",
+    "lint": "eslint . --ext .js,.vue"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.9",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "hono": "^4.12.2",
-    "morgan": "^1.10.1"
+    "ws": "^8.18.0",
+    "vue": "^3.4.0",
+    "pinia": "^2.1.0"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^29.0.0",
-    "@rollup/plugin-node-resolve": "^16.0.3",
-    "pkg": "^5.8.1",
-    "rollup": "^4.59.0"
+    "@vitejs/plugin-vue": "^5.0.0",
+    "vite": "^5.0.0",
+    "eslint": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }

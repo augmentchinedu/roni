@@ -1,0 +1,2 @@
+// In dev, the kernel bus is unreachable via IDX proxy.
+// RoniBus.connect() will fail gracefully — compositor still renders.
