@@ -72,9 +72,6 @@ jobs:
           name: compositor-dist
           path: compositor/dist/
 
-      - name: Install postject
-        run: npm install -g postject
-
       - name: Generate SEA blob
         run: node --experimental-sea-config sea-config.json
 
@@ -83,7 +80,7 @@ jobs:
           mkdir -p dist
           cp $(which node) dist/roni-linux
           chmod +x dist/roni-linux
-          npx postject dist/roni-linux NODE_SEA_BLOB sea-prep.blob \
+          npx --yes postject dist/roni-linux NODE_SEA_BLOB sea-prep.blob \
             --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
 
       - name: Assemble release
@@ -123,9 +120,6 @@ jobs:
           name: compositor-dist
           path: compositor/dist/
 
-      - name: Install postject
-        run: npm install -g postject
-
       - name: Generate SEA blob
         run: node --experimental-sea-config sea-config.json
 
@@ -135,7 +129,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           $nodePath = (Get-Command node).Source
           Copy-Item $nodePath dist\roni.exe
-          npx postject dist\roni.exe NODE_SEA_BLOB sea-prep.blob `
+          npx --yes postject dist\roni.exe NODE_SEA_BLOB sea-prep.blob `
             --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
 
       - name: Assemble release
@@ -175,9 +169,6 @@ jobs:
           name: compositor-dist
           path: compositor/dist/
 
-      - name: Install postject
-        run: npm install -g postject
-
       - name: Generate SEA blob
         run: node --experimental-sea-config sea-config.json
 
@@ -186,7 +177,7 @@ jobs:
           mkdir -p dist
           cp $(which node) dist/roni-macos
           codesign --remove-signature dist/roni-macos || true
-          npx postject dist/roni-macos NODE_SEA_BLOB sea-prep.blob \
+          npx --yes postject dist/roni-macos NODE_SEA_BLOB sea-prep.blob \
             --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 \
             --macho-segment-name NODE_SEA
           codesign --sign - dist/roni-macos || true
