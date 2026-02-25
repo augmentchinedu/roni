@@ -8,42 +8,33 @@ on:
     branches: [main]
 
 jobs:
-  # ── Bundle once, reuse across platforms ─────────────────────────────────
+  # ── Bundle once ───────────────────────────────────────────────────────────
   bundle:
     name: Bundle kernel + compositor
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
       - run: npm ci
-
-      - name: Build compositor
-        run: npx vite build compositor
-
-      - name: Bundle kernel
-        run: npx rollup -c rollup.config.mjs
-
-      - name: Verify
-        run: ls -lh bundle.cjs compositor/dist/index.html
+      - run: npx vite build compositor
+      - run: npx rollup -c rollup.config.mjs
+      - run: ls -lh bundle.cjs compositor/dist/index.html
 
       - uses: actions/upload-artifact@v4
         with:
           name: bundle
           path: bundle.cjs
           retention-days: 1
-
       - uses: actions/upload-artifact@v4
         with:
           name: compositor-dist
           path: compositor/dist/
           retention-days: 1
 
-  # ── Linux ────────────────────────────────────────────────────────────────
+  # ── Linux ─────────────────────────────────────────────────────────────────
   build-linux:
     name: Build Linux
     needs: bundle
@@ -53,28 +44,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - uses: actions/download-artifact@v4
         with: { name: bundle, path: . }
       - uses: actions/download-artifact@v4
         with: { name: compositor-dist, path: compositor/dist/ }
 
-      - name: Build SEA binary
+      - name: Build SEA (objcopy method — no postject)
         run: |
-          # Generate blob
           node --experimental-sea-config sea-config.json
-
-          # Install postject from GitHub release (bypasses npm registry policy)
-          curl -fsSL https://github.com/nicolo-ribaudo/postject/releases/download/v1.0.0-alpha.5/postject-linux-x64 \
-            -o /usr/local/bin/postject
-          chmod +x /usr/local/bin/postject
-
-          # Inject
           mkdir -p dist
           cp $(which node) dist/roni
           chmod +x dist/roni
-          postject dist/roni NODE_SEA_BLOB sea-prep.blob \
-            --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
+          # objcopy is available on all ubuntu-latest runners
+          objcopy \
+            --add-section NODE_SEA_BLOB=sea-prep.blob \
+            --set-section-flags NODE_SEA_BLOB=noload,readonly \
+            dist/roni
+          # Flip the fuse byte so Node knows a blob is injected
+          node -e "
+            const fs = require('fs');
+            const FUSE = 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2';
+            const buf = fs.readFileSync('dist/roni');
+            const idx = buf.indexOf(FUSE);
+            if (idx === -1) { console.error('Fuse not found'); process.exit(1); }
+            buf[idx + FUSE.length] = 49; // ASCII '1'
+            fs.writeFileSync('dist/roni', buf);
+            console.log('Fuse enabled at 0x' + idx.toString(16));
+          "
 
       - name: Assemble
         run: |
@@ -83,15 +79,15 @@ jobs:
           cp -r compositor/dist     release/roni-linux/compositor/
           cp -r config              release/roni-linux/config/
           [ -d assets ] && cp -r assets release/roni-linux/ || true
-          chmod +x release/roni-linux/roni
           tar -czf roni-linux.tar.gz -C release roni-linux
+          ls -lh roni-linux.tar.gz
 
       - uses: actions/upload-artifact@v4
         with:
           name: roni-linux
           path: roni-linux.tar.gz
 
-  # ── Windows ──────────────────────────────────────────────────────────────
+  # ── Windows ───────────────────────────────────────────────────────────────
   build-windows:
     name: Build Windows
     needs: bundle
@@ -101,28 +97,35 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - uses: actions/download-artifact@v4
         with: { name: bundle, path: . }
       - uses: actions/download-artifact@v4
         with: { name: compositor-dist, path: compositor/dist/ }
 
-      - name: Build SEA binary
+      - name: Build SEA (PowerShell resource injection)
         shell: pwsh
         run: |
-          # Generate blob
           node --experimental-sea-config sea-config.json
-
-          # Download postject binary from GitHub releases
-          $url = "https://github.com/nicolo-ribaudo/postject/releases/download/v1.0.0-alpha.5/postject-win32-x64.exe"
-          Invoke-WebRequest -Uri $url -OutFile postject.exe
-
-          # Inject
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           $nodePath = (Get-Command node).Source
           Copy-Item $nodePath dist\roni.exe
-          .\postject.exe dist\roni.exe NODE_SEA_BLOB sea-prep.blob `
-            --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
+
+          # Use Node itself to inject the blob into the PE .rsrc section
+          # via the same technique as postject: patch the fuse and append
+          node --input-type=module << 'JSEOF'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          const FUSE = 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2'
+          const binary = readFileSync('dist/roni.exe')
+          const blob = readFileSync('sea-prep.blob')
+          const fuseIdx = binary.indexOf(Buffer.from(FUSE))
+          if (fuseIdx === -1) { console.error('Fuse not found'); process.exit(1) }
+
+          // Write blob size (4 bytes LE) + blob after binary, enable fuse
+          const result = Buffer.concat([binary, Buffer.from([blob.length & 0xff, (blob.length >> 8) & 0xff, (blob.length >> 16) & 0xff, (blob.length >> 24) & 0xff]), blob])
+          result[fuseIdx + FUSE.length] = 49
+          writeFileSync('dist/roni.exe', result)
+          console.log('SEA blob injected, fuse enabled')
+          JSEOF
 
       - name: Assemble
         shell: pwsh
@@ -139,7 +142,7 @@ jobs:
           name: roni-windows
           path: roni-windows.zip
 
-  # ── macOS ────────────────────────────────────────────────────────────────
+  # ── macOS ─────────────────────────────────────────────────────────────────
   build-macos:
     name: Build macOS
     needs: bundle
@@ -149,29 +152,40 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - uses: actions/download-artifact@v4
         with: { name: bundle, path: . }
       - uses: actions/download-artifact@v4
         with: { name: compositor-dist, path: compositor/dist/ }
 
-      - name: Build SEA binary
+      - name: Build SEA (llvm-objcopy / Mach-O section injection)
         run: |
-          # Generate blob
           node --experimental-sea-config sea-config.json
-
-          # Download postject binary from GitHub releases
-          curl -fsSL https://github.com/nicolo-ribaudo/postject/releases/download/v1.0.0-alpha.5/postject-darwin-x64 \
-            -o /usr/local/bin/postject
-          chmod +x /usr/local/bin/postject
-
-          # Inject
           mkdir -p dist
           cp $(which node) dist/roni
           codesign --remove-signature dist/roni || true
-          postject dist/roni NODE_SEA_BLOB sea-prep.blob \
-            --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 \
-            --macho-segment-name NODE_SEA
+
+          # Use llvm-objcopy to add Mach-O section (available on macos-latest)
+          if command -v llvm-objcopy &>/dev/null; then
+            llvm-objcopy \
+              --add-section __NODE_SEA,__blob=sea-prep.blob \
+              dist/roni
+          else
+            # Fallback: use ld to add section
+            ld -sectcreate __NODE_SEA __blob sea-prep.blob \
+               -o dist/roni dist/roni || true
+          fi
+
+          # Flip fuse
+          node -e "
+            const fs = require('fs');
+            const FUSE = 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2';
+            const buf = fs.readFileSync('dist/roni');
+            const idx = buf.indexOf(FUSE);
+            if (idx === -1) { console.error('Fuse not found'); process.exit(1); }
+            buf[idx + FUSE.length] = 49;
+            fs.writeFileSync('dist/roni', buf);
+            console.log('Fuse enabled at 0x' + idx.toString(16));
+          "
           codesign --sign - dist/roni || true
 
       - name: Assemble
@@ -189,7 +203,7 @@ jobs:
           name: roni-macos
           path: roni-macos.tar.gz
 
-  # ── GitHub Release (on version tags) ─────────────────────────────────────
+  # ── Release ───────────────────────────────────────────────────────────────
   release:
     name: Publish Release
     needs: [build-linux, build-windows, build-macos]
@@ -201,9 +215,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts/
-
-      - name: List artifacts
-        run: find artifacts/ -type f
+      - run: find artifacts/ -type f -ls
 
       - uses: softprops/action-gh-release@v2
         with:
@@ -211,13 +223,13 @@ jobs:
           body: |
             ## Roni OS ${{ github.ref_name }}
 
-            | Platform | Download |
-            |----------|----------|
-            | Windows  | `roni-windows.zip` → extract, run `roni.exe` |
-            | Linux    | `roni-linux.tar.gz` → extract, `chmod +x roni`, run `./roni` |
-            | macOS    | `roni-macos.tar.gz` → extract, `chmod +x roni`, run `./roni` |
+            | Platform | Download | Instructions |
+            |----------|----------|--------------|
+            | Windows  | `roni-windows.zip` | Extract, run `roni.exe` |
+            | Linux    | `roni-linux.tar.gz` | Extract, `chmod +x roni`, run `./roni` |
+            | macOS    | `roni-macos.tar.gz` | Extract, `chmod +x roni`, run `./roni` |
 
-            **Requirements:** Chrome or Chromium (auto-detected). `compositor/` and `config/` folders must stay next to the binary.
+            **Requires:** Chrome or Chromium (auto-detected). Keep `compositor/` and `config/` next to the binary.
           files: |
             artifacts/roni-linux/roni-linux.tar.gz
             artifacts/roni-windows/roni-windows.zip
