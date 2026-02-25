@@ -1,43 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Roni</title>
-    <script>
-      // Kernel injects bus port via a placeholder replaced at serve time
-      // Falls back to default in dev
-      window.__RONI_BUS_PORT__ = __BUS_PORT__ || 7701;
-    </script>
-    <style>
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      html,
-      body {
-        width: 100vw;
-        height: 100vh;
-        overflow: hidden;
-        background: #0a0a0f;
-        font-family: system-ui, -apple-system, sans-serif;
-        user-select: none;
-        -webkit-user-select: none;
-        cursor: default;
-      }
-      #roni {
-        width: 100%;
-        height: 100%;
-        position: relative;
-        overflow: hidden;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="roni"></div>
-    <script type="module" src="./main.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roni</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100vw; height: 100vh; overflow: hidden;
+      background: #0a0a0f;
+    }
+    #roni { width: 100%; height: 100%; position: relative; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="roni"></div>
+  <script type="module" src="./main.js"></script>
+</body>
 </html>

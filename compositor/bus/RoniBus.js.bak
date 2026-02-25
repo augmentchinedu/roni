@@ -5,16 +5,11 @@
 import { reactive } from "vue";
 import { randomUUID } from "./uuid.js";
 
-const BUS_PORT = window.__RONI_BUS_PORT__ ?? 7701
-const BUS_URL = (() => {
-  if (typeof location === 'undefined') return `ws://127.0.0.1:${BUS_PORT}`
-  if (location.hostname.includes('cloudworkstations.dev')) {
-    // IDX: swap the port prefix in the hostname
-    const host = location.hostname.replace(/^\d+-/, `${BUS_PORT}-`)
-    return `wss://${host}`
-  }
-  return `ws://127.0.0.1:${BUS_PORT}`
-})();
+const IS_IDX = typeof location !== 'undefined' && location.hostname.includes('cloudworkstations.dev')
+const BUS_PORT = window.__RONI_BUS_PORT__ ?? 7701;
+const BUS_URL = IS_IDX
+  ? `wss://${BUS_PORT}-${location.hostname}`
+  : `ws://127.0.0.1:${BUS_PORT}`;
 
 class RoniBus extends EventTarget {
   #ws = null;
