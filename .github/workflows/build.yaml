@@ -110,22 +110,23 @@ jobs:
           $nodePath = (Get-Command node).Source
           Copy-Item $nodePath dist\roni.exe
 
-          # Use Node itself to inject the blob into the PE .rsrc section
-          # via the same technique as postject: patch the fuse and append
-          node --input-type=module << 'JSEOF'
-          import { readFileSync, writeFileSync } from 'node:fs'
-          const FUSE = 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2'
-          const binary = readFileSync('dist/roni.exe')
-          const blob = readFileSync('sea-prep.blob')
-          const fuseIdx = binary.indexOf(Buffer.from(FUSE))
-          if (fuseIdx === -1) { console.error('Fuse not found'); process.exit(1) }
+          # Write injection script to a file (PowerShell has no heredoc)
+          @'
+          import { readFileSync, writeFileSync } from "node:fs";
+          const FUSE = "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2";
+          const binary = readFileSync("dist/roni.exe");
+          const blob = readFileSync("sea-prep.blob");
+          const fuseIdx = binary.indexOf(Buffer.from(FUSE));
+          if (fuseIdx === -1) { console.error("Fuse not found"); process.exit(1); }
+          const lenBuf = Buffer.alloc(4);
+          lenBuf.writeUInt32LE(blob.length, 0);
+          const result = Buffer.concat([binary, lenBuf, blob]);
+          result[fuseIdx + FUSE.length] = 49;
+          writeFileSync("dist/roni.exe", result);
+          console.log("SEA blob injected, fuse enabled at 0x" + fuseIdx.toString(16));
+          '@ | Out-File -FilePath inject.mjs -Encoding UTF8
 
-          // Write blob size (4 bytes LE) + blob after binary, enable fuse
-          const result = Buffer.concat([binary, Buffer.from([blob.length & 0xff, (blob.length >> 8) & 0xff, (blob.length >> 16) & 0xff, (blob.length >> 24) & 0xff]), blob])
-          result[fuseIdx + FUSE.length] = 49
-          writeFileSync('dist/roni.exe', result)
-          console.log('SEA blob injected, fuse enabled')
-          JSEOF
+          node inject.mjs
 
       - name: Assemble
         shell: pwsh
