@@ -80,6 +80,7 @@ jobs:
 
       - name: Inject blob into Node binary
         run: |
+          mkdir -p dist
           cp $(which node) dist/roni-linux
           chmod +x dist/roni-linux
           npx postject dist/roni-linux NODE_SEA_BLOB sea-prep.blob \
