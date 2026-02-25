@@ -7,10 +7,8 @@ on:
   pull_request:
     branches: [main]
 
-# ── Step 1: Bundle kernel + build compositor once ───────────────────────────
-# Then each platform job injects the same blob into its own node binary.
-
 jobs:
+  # ── Bundle once, reuse across platforms ─────────────────────────────────
   bundle:
     name: Bundle kernel + compositor
     runs-on: ubuntu-latest
@@ -22,29 +20,24 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
-      - name: Build compositor (Vite)
+      - name: Build compositor
         run: npx vite build compositor
 
-      - name: Bundle kernel (Rollup)
+      - name: Bundle kernel
         run: npx rollup -c rollup.config.mjs
 
-      - name: Verify bundle
-        run: |
-          ls -lh bundle.cjs
-          ls -lh compositor/dist/index.html
+      - name: Verify
+        run: ls -lh bundle.cjs compositor/dist/index.html
 
-      - name: Upload bundle artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: bundle
           path: bundle.cjs
           retention-days: 1
 
-      - name: Upload compositor artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: compositor-dist
           path: compositor/dist/
@@ -52,43 +45,43 @@ jobs:
 
   # ── Linux ────────────────────────────────────────────────────────────────
   build-linux:
-    name: Build Linux SEA
+    name: Build Linux
     needs: bundle
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - uses: actions/download-artifact@v4
-        with:
-          name: bundle
-          path: .
-
+        with: { name: bundle, path: . }
       - uses: actions/download-artifact@v4
-        with:
-          name: compositor-dist
-          path: compositor/dist/
+        with: { name: compositor-dist, path: compositor/dist/ }
 
-      - name: Generate SEA blob
-        run: node --experimental-sea-config sea-config.json
-
-      - name: Inject blob into Node binary
+      - name: Build SEA binary
         run: |
+          # Generate blob
+          node --experimental-sea-config sea-config.json
+
+          # Install postject from GitHub release (bypasses npm registry policy)
+          curl -fsSL https://github.com/nicolo-ribaudo/postject/releases/download/v1.0.0-alpha.5/postject-linux-x64 \
+            -o /usr/local/bin/postject
+          chmod +x /usr/local/bin/postject
+
+          # Inject
           mkdir -p dist
-          cp $(which node) dist/roni-linux
-          chmod +x dist/roni-linux
-          npx --yes postject dist/roni-linux NODE_SEA_BLOB sea-prep.blob \
+          cp $(which node) dist/roni
+          chmod +x dist/roni
+          postject dist/roni NODE_SEA_BLOB sea-prep.blob \
             --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
 
-      - name: Assemble release
+      - name: Assemble
         run: |
           mkdir -p release/roni-linux
-          cp dist/roni-linux          release/roni-linux/roni
-          cp -r compositor/dist       release/roni-linux/compositor/
-          cp -r config                release/roni-linux/config/
+          cp dist/roni              release/roni-linux/roni
+          cp -r compositor/dist     release/roni-linux/compositor/
+          cp -r config              release/roni-linux/config/
           [ -d assets ] && cp -r assets release/roni-linux/ || true
           chmod +x release/roni-linux/roni
           tar -czf roni-linux.tar.gz -C release roni-linux
@@ -100,47 +93,46 @@ jobs:
 
   # ── Windows ──────────────────────────────────────────────────────────────
   build-windows:
-    name: Build Windows SEA
+    name: Build Windows
     needs: bundle
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - uses: actions/download-artifact@v4
-        with:
-          name: bundle
-          path: .
-
+        with: { name: bundle, path: . }
       - uses: actions/download-artifact@v4
-        with:
-          name: compositor-dist
-          path: compositor/dist/
+        with: { name: compositor-dist, path: compositor/dist/ }
 
-      - name: Generate SEA blob
-        run: node --experimental-sea-config sea-config.json
-
-      - name: Inject blob into Node binary
+      - name: Build SEA binary
         shell: pwsh
         run: |
+          # Generate blob
+          node --experimental-sea-config sea-config.json
+
+          # Download postject binary from GitHub releases
+          $url = "https://github.com/nicolo-ribaudo/postject/releases/download/v1.0.0-alpha.5/postject-win32-x64.exe"
+          Invoke-WebRequest -Uri $url -OutFile postject.exe
+
+          # Inject
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           $nodePath = (Get-Command node).Source
           Copy-Item $nodePath dist\roni.exe
-          npx --yes postject dist\roni.exe NODE_SEA_BLOB sea-prep.blob `
+          .\postject.exe dist\roni.exe NODE_SEA_BLOB sea-prep.blob `
             --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
 
-      - name: Assemble release
+      - name: Assemble
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release\roni-windows | Out-Null
-          Copy-Item dist\roni.exe           release\roni-windows\roni.exe
+          Copy-Item dist\roni.exe            release\roni-windows\roni.exe
           Copy-Item -Recurse compositor\dist release\roni-windows\compositor\
           Copy-Item -Recurse config          release\roni-windows\config\
           if (Test-Path assets) { Copy-Item -Recurse assets release\roni-windows\ }
-          Compress-Archive -Path release\roni-windows -DestinationPath roni-windows.zip
+          Compress-Archive -Path release\roni-windows\* -DestinationPath roni-windows.zip
 
       - uses: actions/upload-artifact@v4
         with:
@@ -149,45 +141,45 @@ jobs:
 
   # ── macOS ────────────────────────────────────────────────────────────────
   build-macos:
-    name: Build macOS SEA
+    name: Build macOS
     needs: bundle
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - uses: actions/download-artifact@v4
-        with:
-          name: bundle
-          path: .
-
+        with: { name: bundle, path: . }
       - uses: actions/download-artifact@v4
-        with:
-          name: compositor-dist
-          path: compositor/dist/
+        with: { name: compositor-dist, path: compositor/dist/ }
 
-      - name: Generate SEA blob
-        run: node --experimental-sea-config sea-config.json
-
-      - name: Inject blob into Node binary
+      - name: Build SEA binary
         run: |
+          # Generate blob
+          node --experimental-sea-config sea-config.json
+
+          # Download postject binary from GitHub releases
+          curl -fsSL https://github.com/nicolo-ribaudo/postject/releases/download/v1.0.0-alpha.5/postject-darwin-x64 \
+            -o /usr/local/bin/postject
+          chmod +x /usr/local/bin/postject
+
+          # Inject
           mkdir -p dist
-          cp $(which node) dist/roni-macos
-          codesign --remove-signature dist/roni-macos || true
-          npx --yes postject dist/roni-macos NODE_SEA_BLOB sea-prep.blob \
+          cp $(which node) dist/roni
+          codesign --remove-signature dist/roni || true
+          postject dist/roni NODE_SEA_BLOB sea-prep.blob \
             --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 \
             --macho-segment-name NODE_SEA
-          codesign --sign - dist/roni-macos || true
+          codesign --sign - dist/roni || true
 
-      - name: Assemble release
+      - name: Assemble
         run: |
           mkdir -p release/roni-macos
-          cp dist/roni-macos          release/roni-macos/roni
-          cp -r compositor/dist       release/roni-macos/compositor/
-          cp -r config                release/roni-macos/config/
+          cp dist/roni              release/roni-macos/roni
+          cp -r compositor/dist     release/roni-macos/compositor/
+          cp -r config              release/roni-macos/config/
           [ -d assets ] && cp -r assets release/roni-macos/ || true
           chmod +x release/roni-macos/roni
           tar -czf roni-macos.tar.gz -C release roni-macos
@@ -197,37 +189,35 @@ jobs:
           name: roni-macos
           path: roni-macos.tar.gz
 
-  # ── Release (tags only) ──────────────────────────────────────────────────
+  # ── GitHub Release (on version tags) ─────────────────────────────────────
   release:
-    name: Publish GitHub Release
+    name: Publish Release
     needs: [build-linux, build-windows, build-macos]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts/
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: List artifacts
+        run: find artifacts/ -type f
+
+      - uses: softprops/action-gh-release@v2
         with:
           name: Roni ${{ github.ref_name }}
           body: |
             ## Roni OS ${{ github.ref_name }}
 
-            ### Downloads
-            | Platform | File |
-            |----------|------|
+            | Platform | Download |
+            |----------|----------|
             | Windows  | `roni-windows.zip` → extract, run `roni.exe` |
-            | Linux    | `roni-linux.tar.gz` → extract, run `./roni` |
-            | macOS    | `roni-macos.tar.gz` → extract, run `./roni` |
+            | Linux    | `roni-linux.tar.gz` → extract, `chmod +x roni`, run `./roni` |
+            | macOS    | `roni-macos.tar.gz` → extract, `chmod +x roni`, run `./roni` |
 
-            ### Requirements
-            - Google Chrome or Chromium installed (auto-detected)
-            - `compositor/` and `config/` folders must sit next to the binary
+            **Requirements:** Chrome or Chromium (auto-detected). `compositor/` and `config/` folders must stay next to the binary.
           files: |
             artifacts/roni-linux/roni-linux.tar.gz
             artifacts/roni-windows/roni-windows.zip
