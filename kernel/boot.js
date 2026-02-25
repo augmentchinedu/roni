@@ -41,7 +41,7 @@ async function loadConfig() {
     return {
       display: { platform: 'wayland', width: 1920, height: 1080 },
       compositor: { port: 7700 },
-      chromium: { bin: 'chromium-browser' },
+      chromium: {},  // no bin — triggers auto-detect
     }
   }
 }
@@ -130,8 +130,11 @@ const CHROMIUM_CANDIDATES = {
 }
 
 async function findChromium(config) {
-  // 1. Explicit config override
-  if (config.chromium?.bin) return config.chromium.bin
+  // 1. Explicit non-empty config override only
+  if (config.chromium?.bin && config.chromium.bin.length > 0) {
+    console.log(`[boot] Using configured Chromium: ${config.chromium.bin}`)
+    return config.chromium.bin
+  }
 
   const { execSync } = await import('node:child_process')
   const { existsSync } = await import('node:fs')
@@ -168,23 +171,26 @@ async function downloadChromium() {
     const { existsSync } = await import('node:fs')
     const cacheDir = resolve(ROOT, '.chromium')
 
-    // Install @puppeteer/browsers temporarily if needed
+    // Install @puppeteer/browsers if not already present
     execSync(
-      `node -e "require('@puppeteer/browsers')" 2>/dev/null || npm install --no-save @puppeteer/browsers`,
+      'npm install --no-save @puppeteer/browsers',
       { cwd: ROOT, stdio: 'inherit' }
     )
 
-    const { install, resolveBuildId, Browser } = await import('@puppeteer/browsers')
-    const buildId = await resolveBuildId(Browser.CHROME, process.platform === 'win32' ? 'win64' : process.platform, 'stable')
+    const { install, Browser } = await import('@puppeteer/browsers')
 
-    console.log(`[boot] Downloading Chrome ${buildId}...`)
+    const platform = process.platform === 'win32' ? 'win64'
+      : process.platform === 'darwin' ? 'mac'
+      : 'linux'
+
+    console.log(`[boot] Downloading Chrome for ${platform}...`)
     const result = await install({
       browser: Browser.CHROME,
-      buildId,
+      buildId: 'stable',
       cacheDir,
       downloadProgressCallback: (dl, total) => {
         const pct = total ? Math.round((dl / total) * 100) : '?'
-        process.stdout.write(`\r[boot] Downloading... ${pct}%`)
+        process.stdout.write(`\r[boot] Downloading Chrome... ${pct}%`)
       }
     })
     process.stdout.write('\n')
@@ -360,4 +366,12 @@ async function main() {
 main().catch((err) => {
   console.error('[boot] Fatal error during boot:', err)
   process.exit(1)
-})
+})git add kernel/boot.js
+git commit -m "fix: auto-detect Chrome on Windows — remove hardcoded bin default"
+git push origin main
+```
+
+Pull on your local machine and run again. You should now see:
+```
+[boot] Found Chromium: C:\Program Files\Google\Chrome\Application\chrome.exe
+[boot] Launching Chromium: chrome.exe --app=http://localhost:7700 ...
