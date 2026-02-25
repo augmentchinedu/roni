@@ -14,6 +14,7 @@
     "dev": "npm run dev:kernel & npm run dev:compositor",
     "dev:kernel": "node --watch kernel/boot.js --dev",
     "dev:compositor": "vite compositor",
+    "bundle": "rollup -c rollup.config.mjs",
     "build": "npm run build:compositor && npm run build:sdk",
     "build:compositor": "vite build compositor",
     "build:sdk": "node scripts/build-sdk.js",
