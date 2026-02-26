@@ -54,9 +54,7 @@ jobs:
         run: |
           mkdir -p release/roni-linux
           cp dist/roni              release/roni-linux/roni
-          cp -r compositor/dist     release/roni-linux/compositor/
-          cp -r config              release/roni-linux/config/
-          [ -d assets ] && cp -r assets release/roni-linux/ || true
+          chmod +x release/roni-linux/roni
           tar -czf roni-linux.tar.gz -C release roni-linux
           ls -lh roni-linux.tar.gz
 
@@ -92,10 +90,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release\roni-windows | Out-Null
-          Copy-Item dist\roni.exe            release\roni-windows\roni.exe
-          Copy-Item -Recurse compositor\dist release\roni-windows\compositor\
-          Copy-Item -Recurse config          release\roni-windows\config\
-          if (Test-Path assets) { Copy-Item -Recurse assets release\roni-windows\ }
+          Copy-Item dist\roni.exe release\roni-windows\roni.exe
           Compress-Archive -Path release\roni-windows\* -DestinationPath roni-windows.zip
 
       - uses: actions/upload-artifact@v4
@@ -127,9 +122,6 @@ jobs:
         run: |
           mkdir -p release/roni-macos
           cp dist/roni              release/roni-macos/roni
-          cp -r compositor/dist     release/roni-macos/compositor/
-          cp -r config              release/roni-macos/config/
-          [ -d assets ] && cp -r assets release/roni-macos/ || true
           chmod +x release/roni-macos/roni
           tar -czf roni-macos.tar.gz -C release roni-macos
           ls -lh roni-macos.tar.gz
@@ -165,7 +157,7 @@ jobs:
             | Linux    | `roni-linux.tar.gz` | Extract → `chmod +x roni && ./roni` |
             | macOS    | `roni-macos.tar.gz` | Extract → `chmod +x roni && ./roni` |
 
-            **Requires:** Chrome or Chromium (auto-detected). Keep `compositor/` and `config/` next to the binary.
+            **Requires:** Chrome or Chromium (auto-detected). Compositor is embedded — just run the binary.
           files: |
             artifacts/roni-linux/roni-linux.tar.gz
             artifacts/roni-windows/roni-windows.zip
