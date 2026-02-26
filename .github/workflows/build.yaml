@@ -21,6 +21,15 @@ jobs:
       - run: npm ci
       - run: npx vite build compositor
       - run: node scripts/embed-compositor.mjs
+      - name: Verify embed
+        run: |
+          grep -c "COMPOSITOR_EMBED_START" kernel/boot.js
+          grep "Buffer.from" kernel/boot.js | wc -l
+          # Must have actual file data injected
+          if ! grep -q "Buffer.from(" kernel/boot.js; then
+            echo "ERROR: embed-compositor.mjs did not inject files"
+            exit 1
+          fi
       - run: npx rollup -c rollup.config.mjs
       - run: ls -lh bundle.cjs
 

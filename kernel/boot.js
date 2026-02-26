@@ -3,7 +3,6 @@
  */
 
 import { readFileSync, existsSync, createReadStream } from 'node:fs';
-import { readFile } from 'node:fs/promises';
 import { spawn, execSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { resolve, dirname, join, extname } from 'node:path';
@@ -16,17 +15,20 @@ import { PowerService } from './power/manager.js';
 import { SessionService } from './auth/session.js';
 
 // ── ROOT resolution ───────────────────────────────────────────────────────────
-// SEA: import.meta.url is the exe path, so dirname gives exe directory
-// Normal: dirname gives kernel/, go one level up
+// In a SEA, import.meta.url is NOT a file: URL — it's the exe path.
+// process.argv[0] is always the actual exe path on all platforms.
+// We detect SEA by checking if import.meta.url starts with 'file:'.
 let ROOT;
 try {
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  // In a bundled CJS SEA, __dirname will be the exe directory
-  ROOT = existsSync(join(__dirname, 'compositor')) || existsSync(join(__dirname, 'config'))
-    ? __dirname
-    : resolve(__dirname, '..');
+  const url = import.meta.url;
+  if (url && url.startsWith('file:')) {
+    ROOT = resolve(dirname(fileURLToPath(url)), '..');
+  } else {
+    throw new Error('not a file URL');
+  }
 } catch {
-  ROOT = dirname(process.execPath);
+  // SEA mode: argv[0] is the exe, ROOT is its directory
+  ROOT = dirname(resolve(process.argv[0]));
 }
 
 const IS_DEV = process.argv.includes('--dev');
@@ -38,7 +40,7 @@ function loadConfig() {
     const raw = readFileSync(join(ROOT, 'config', 'system.json'), 'utf8');
     return JSON.parse(raw);
   } catch {
-    console.warn('[boot] No system.json found, using defaults');
+    console.warn('[boot] No system.json — using defaults');
     return {
       display: { platform: 'wayland', width: 1920, height: 1080 },
       compositor: { port: 7700 },
@@ -61,7 +63,7 @@ class KernelServices {
   }
 
   async start() {
-    console.log('[kernel] Starting Roni kernel services...');
+    console.log('[kernel] Starting services...');
     await this.bus.start();
     await this.vfs.start();
     await this.proc.start();
@@ -74,7 +76,7 @@ class KernelServices {
 
   registerHandlers() {
     this.bus.on('compositor:ready', async () => {
-      console.log('[kernel] Compositor ready. Sending session info.');
+      console.log('[kernel] Compositor ready.');
       this.bus.send({
         to: 'compositor', type: 'event', domain: 'kernel', method: 'session:start',
         payload: {
@@ -100,7 +102,6 @@ const CHROMIUM_CANDIDATES = {
     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
     join(process.env.LOCALAPPDATA ?? '', 'Google\\Chrome\\Application\\chrome.exe'),
     join(process.env.LOCALAPPDATA ?? '', 'Chromium\\Application\\chrome.exe'),
-    join(process.env.PROGRAMFILES ?? '', 'Google\\Chrome\\Application\\chrome.exe'),
   ],
   darwin: [
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -113,25 +114,16 @@ const CHROMIUM_CANDIDATES = {
 };
 
 function findChromium(config) {
-  if (config.chromium?.bin?.length > 0) {
-    console.log(`[boot] Using configured Chromium: ${config.chromium.bin}`);
-    return config.chromium.bin;
-  }
-
+  if (config.chromium?.bin?.length > 0) return config.chromium.bin;
   const platform = process.platform;
   const candidates = CHROMIUM_CANDIDATES[platform] ?? CHROMIUM_CANDIDATES.linux;
-
   for (const c of candidates) {
     try {
       if (c.includes('/') || c.includes('\\')) {
-        if (existsSync(c)) {
-          console.log(`[boot] Found Chromium: ${c}`);
-          return c;
-        }
+        if (existsSync(c)) { console.log(`[boot] Found Chrome: ${c}`); return c; }
       } else {
         execSync(platform === 'win32' ? `where "${c}"` : `which "${c}"`, { stdio: 'ignore' });
-        console.log(`[boot] Found Chromium in PATH: ${c}`);
-        return c;
+        console.log(`[boot] Found Chrome in PATH: ${c}`); return c;
       }
     } catch { /* try next */ }
   }
@@ -139,125 +131,95 @@ function findChromium(config) {
 }
 
 function buildChromiumArgs(config, port) {
-  const url  = IS_DEV
+  const url = IS_DEV
     ? `http://localhost:${config.compositor?.devPort ?? 5173}`
     : `http://localhost:${port}`;
   const isWin = process.platform === 'win32';
   const isMac = process.platform === 'darwin';
-
   const args = [
-    `--app=${url}`,
-    '--start-fullscreen',
-    '--disable-infobars',
-    '--no-first-run',
-    '--no-default-browser-check',
-    '--disable-translate',
-    '--disable-features=TranslateUI',
-    '--noerrdialogs',
-    '--kiosk',
+    `--app=${url}`, '--start-fullscreen', '--disable-infobars',
+    '--no-first-run', '--no-default-browser-check',
+    '--disable-translate', '--disable-features=TranslateUI',
+    '--noerrdialogs', '--kiosk',
   ];
-
   if (!isWin) args.push('--class=Roni', '--name=Roni');
-
   if (!IS_DEV && !isWin && !isMac) {
     const p = config.display?.platform ?? 'wayland';
     args.push(`--ozone-platform=${p}`);
     if (p === 'drm') args.push('--use-gl=egl', '--enable-features=UseOzonePlatform');
   }
-
   if (isWin) args.push('--disable-gpu-sandbox', '--no-sandbox');
-
   return args;
 }
 
 function spawnChromium(config, port) {
   const bin = findChromium(config);
-
   if (!bin) {
-    console.error('[boot] Chrome/Chromium not found.');
-    console.error('[boot] Install Chrome: https://www.google.com/chrome/');
+    console.error('[boot] Chrome/Chromium not found. Install: https://www.google.com/chrome/');
     process.exit(1);
   }
-
   const args = buildChromiumArgs(config, port);
   console.log(`[boot] Launching: ${bin.split(/[/\\]/).pop()} ${args[0]}`);
-
   const child = spawn(bin, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, ...(process.env.DISPLAY ? {} : { DISPLAY: ':0' }) },
     detached: false,
     windowsHide: false,
   });
-
   child.stdout.on('data', (d) => process.stdout.write(`[chromium] ${d}`));
   child.stderr.on('data', (d) => {
     const msg = d.toString();
-    if (['Failed to connect to the bus', 'Missing X server', 'MESA', 'dri', 'DevTools', 'Gtk'].some(s => msg.includes(s))) return;
+    if (['Failed to connect','Missing X server','MESA','dri','DevTools','Gtk'].some(s => msg.includes(s))) return;
     process.stderr.write(`[chromium:err] ${msg}`);
   });
-
   child.on('exit', (code, signal) => {
     console.warn(`[boot] Chromium exited (code=${code} signal=${signal})`);
     if (code !== 0 && code !== null) {
-      console.log('[boot] Restarting Chromium in 2s...');
+      console.log('[boot] Restarting in 2s...');
       setTimeout(() => spawnChromium(config, port), 2000);
     } else {
-      console.log('[boot] Clean exit. Halting.');
       process.exit(0);
     }
   });
-
   child.on('error', (err) => {
-    console.error(`[boot] Failed to launch Chromium: ${err.message}`);
+    console.error(`[boot] Chrome launch failed: ${err.message}`);
     setTimeout(() => spawnChromium(config, port), 3000);
   });
-
   return child;
 }
 
 // ── Compositor HTTP server ────────────────────────────────────────────────────
 
 const MIME = {
-  '.html': 'text/html',
-  '.js':   'application/javascript',
-  '.css':  'text/css',
-  '.svg':  'image/svg+xml',
-  '.json': 'application/json',
-  '.png':  'image/png',
-  '.ico':  'image/x-icon',
-  '.woff2':'font/woff2',
-  '.ttf':  'font/ttf',
+  '.html':'text/html', '.js':'application/javascript', '.mjs':'application/javascript',
+  '.css':'text/css', '.svg':'image/svg+xml', '.json':'application/json',
+  '.png':'image/png', '.ico':'image/x-icon', '.woff2':'font/woff2', '.ttf':'font/ttf',
 };
 
-// Embedded compositor (generated by scripts/embed-compositor.mjs at build time)
-let embeddedFiles = null;
-try {
-  const m = require('./compositor-embedded.js');
-  embeddedFiles = m.compositorFiles ?? m.default?.compositorFiles ?? null;
-  if (embeddedFiles) console.log(`[boot] Compositor embedded (${Object.keys(embeddedFiles).length} files)`);
-} catch { /* not embedded — will serve from disk */ }
+// __COMPOSITOR_EMBED_START__
+const EMBEDDED_COMPOSITOR = null; // replaced by embed-compositor.mjs at build time
+// __COMPOSITOR_EMBED_END__
 
 function startCompositorServer(config) {
   const port = config.compositor?.port ?? 7700;
   const compositorRoot = join(ROOT, 'compositor', 'dist');
-  const hasDisk = existsSync(compositorRoot);
+  const hasDisk = !EMBEDDED_COMPOSITOR && existsSync(compositorRoot);
 
-  if (!embeddedFiles && !hasDisk) {
-    console.error('[boot] No compositor found — expected embedded or compositor/dist/ next to binary.');
-    console.error(`[boot] ROOT=${ROOT}`);
+  if (!EMBEDDED_COMPOSITOR && !hasDisk) {
+    console.error('[boot] No compositor found.');
+    console.error(`[boot] Expected embedded files or compositor/dist/ at ${compositorRoot}`);
     process.exit(1);
   }
 
-  console.log(`[boot] Compositor mode: ${embeddedFiles ? 'embedded' : 'disk'}`);
+  console.log(`[boot] Compositor: ${EMBEDDED_COMPOSITOR ? 'embedded (' + Object.keys(EMBEDDED_COMPOSITOR).length + ' files)' : 'disk'}`);
 
   const server = createServer((req, res) => {
-    const urlPath = req.url === '/' ? '/index.html' : (req.url ?? '/index.html').split('?')[0];
+    const urlPath = (req.url === '/' ? '/index.html' : req.url.split('?')[0]);
     const mime = MIME[extname(urlPath)] ?? 'application/octet-stream';
 
-    if (embeddedFiles) {
-      const data = embeddedFiles[urlPath] ?? embeddedFiles['/index.html'];
-      const m = urlPath.endsWith('.html') || !(urlPath in embeddedFiles) ? 'text/html' : mime;
-      res.setHeader('Content-Type', m);
+    if (EMBEDDED_COMPOSITOR) {
+      const data = EMBEDDED_COMPOSITOR[urlPath] ?? EMBEDDED_COMPOSITOR['/index.html'];
+      res.setHeader('Content-Type', EMBEDDED_COMPOSITOR[urlPath] ? mime : 'text/html');
       res.writeHead(200);
       res.end(data);
       return;
@@ -288,7 +250,6 @@ function startCompositorServer(config) {
 
 async function main() {
   process.title = 'Roni';
-
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('  Roni OS — Booting');
   console.log(`  Node ${process.version} · ${IS_DEV ? 'DEV' : 'PROD'}`);
@@ -296,7 +257,6 @@ async function main() {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
   const config = loadConfig();
-
   const kernel = new KernelServices(config);
   await kernel.start();
 
@@ -309,8 +269,9 @@ async function main() {
 
   spawnChromium(config, port);
 
-  // Keep Node alive
-  process.stdin.resume();
+  // Keep the event loop alive — the HTTP server and Chrome process do this
+  // naturally, but be explicit for SEA on Windows
+  setInterval(() => {}, 1 << 30);
 }
 
 main().catch((err) => {
