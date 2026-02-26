@@ -1,6 +1,6 @@
 {
   "main": "bundle.cjs",
-  "output": "sea-prep.blob",
+  "output": "dist/roni",
   "disableExperimentalSEAWarning": true,
   "useSnapshot": false,
   "useCodeCache": true
