@@ -3,7 +3,7 @@ name: Build Roni
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ["v*"]
   pull_request:
     branches: [main]
 
@@ -28,7 +28,6 @@ jobs:
           name: bundle
           path: bundle.cjs
           retention-days: 1
-
 
   # ── Linux ─────────────────────────────────────────────────────────────────
   build-linux:
@@ -89,7 +88,9 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release\roni-windows | Out-Null
-          Copy-Item dist\roni.exe release\roni-windows\roni.exe
+          Copy-Item dist\roni.exe          release\roni-windows\roni.exe
+          Copy-Item roni-launcher.vbs       release\roni-windows\roni-launcher.vbs
+          Copy-Item roni-debug.bat          release\roni-windows\roni-debug.bat
           Compress-Archive -Path release\roni-windows\* -DestinationPath roni-windows.zip
 
       - uses: actions/upload-artifact@v4

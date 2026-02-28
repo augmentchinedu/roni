@@ -140,17 +140,26 @@ function buildChromiumArgs(config, port) {
   const args = [
     `--app=${url}`,
     `--user-data-dir=${userDataDir}`,
-    '--start-fullscreen',
+    '--profile-directory=RoniOS',
+    '--start-maximized',
     '--disable-infobars',
     '--no-first-run',
     '--no-default-browser-check',
     '--disable-translate',
-    '--disable-features=TranslateUI',
+    '--disable-features=TranslateUI,MediaRouter',
     '--noerrdialogs',
-    '--kiosk',
     '--disable-session-crashed-bubble',
     '--disable-background-networking',
+    '--disable-extensions',
+    '--disable-component-extensions-with-background-pages',
+    '--no-startup-window',
   ];
+
+  // Remove --no-startup-window and use kiosk only on non-dev
+  args.pop();
+  if (!IS_DEV) {
+    args.push('--kiosk');
+  }
   if (!isWin) args.push('--class=Roni', '--name=Roni');
   if (!IS_DEV && !isWin && !isMac) {
     const p = config.display?.platform ?? 'wayland';
@@ -270,7 +279,9 @@ async function main() {
   process.title = 'Roni';
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('  Roni OS — Booting');
-  console.log(`  Node ${process.version} · ${IS_DEV ? 'DEV' : 'PROD'}`);
+  console.log(`  Node ${process.version} · ${IS_DEV ? 'DEV' : 'PROD'} · SEA=${IS_SEA}`);
+  console.log(`  argv[0]: ${process.argv[0]}`);
+  console.log(`  execPath: ${process.execPath}`);
   console.log(`  ROOT: ${ROOT}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
