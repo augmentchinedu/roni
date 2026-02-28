@@ -20,13 +20,19 @@ import { SessionService } from "./auth/session.js";
 import { compositorFiles as EMBEDDED_COMPOSITOR } from "roni:compositor";
 
 // ── ROOT resolution ───────────────────────────────────────────────────────────
-// SEA detection: in a bundled CJS SEA, import.meta.url is the exe path (not file:)
-// process.argv[0] is always the actual running exe on all platforms.
-const IS_SEA = !import.meta.url?.startsWith("file:");
+const FLAGS = {
+  isDev: process.argv.includes("--dev"),
+  isBackground: process.env.RONI_BACKGROUND === "1",
+  isNodeBinary: /(^|[\/])node(\.exe)?$/i.test(process.execPath),
+};
+const IS_SEA =
+  !FLAGS.isDev && !FLAGS.isNodeBinary && process.argv[0] === process.execPath;
+
 let ROOT;
+const RUNTIME = { chromium: null };
+
 if (IS_SEA) {
-  // argv[0] = full exe path e.g. C:\Users\Augment\Downloads\roni.exe
-  ROOT = dirname(resolve(process.argv[0]));
+  ROOT = dirname(resolve(process.execPath));
 } else {
   // Dev: kernel/boot.js → go up one level to project root
   ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -191,7 +197,7 @@ function findChromium(config) {
 }
 
 function buildChromiumArgs(config, port) {
-  const url = IS_DEV
+  const url = FLAGS.isDev
     ? `http://localhost:${config.compositor?.devPort ?? 5173}`
     : `http://localhost:${port}`;
   const isWin = process.platform === "win32";
@@ -220,11 +226,11 @@ function buildChromiumArgs(config, port) {
 
   // Remove --no-startup-window and use kiosk only on non-dev
   args.pop();
-  if (!IS_DEV) {
+  if (!FLAGS.isDev) {
     args.push("--kiosk");
   }
   if (!isWin) args.push("--class=Roni", "--name=Roni");
-  if (!IS_DEV && !isWin && !isMac) {
+  if (!FLAGS.isDev && !isWin && !isMac) {
     const p = config.display?.platform ?? "wayland";
     args.push(`--ozone-platform=${p}`);
     if (p === "drm")
@@ -284,10 +290,14 @@ function spawnChromium(config, port) {
         "[boot] Chrome exited in under 3s. Is another Roni already running?"
       );
       console.error("[boot] Retrying in 3s with fresh profile...");
-      setTimeout(() => spawnChromium(config, port), 3000);
+      setTimeout(() => {
+        RUNTIME.chromium = spawnChromium(config, port);
+      }, 3000);
     } else if (code !== 0 && code !== null) {
       console.log("[boot] Chrome crashed — restarting in 2s...");
-      setTimeout(() => spawnChromium(config, port), 2000);
+      setTimeout(() => {
+        RUNTIME.chromium = spawnChromium(config, port);
+      }, 2000);
     } else {
       // Clean exit after normal use — user closed the window
       console.log("[boot] Chrome closed cleanly. Shutting down.");
@@ -296,7 +306,9 @@ function spawnChromium(config, port) {
   });
   child.on("error", (err) => {
     console.error(`[boot] Chrome launch failed: ${err.message}`);
-    setTimeout(() => spawnChromium(config, port), 3000);
+    setTimeout(() => {
+      RUNTIME.chromium = spawnChromium(config, port);
+    }, 3000);
   });
   return child;
 }
@@ -381,7 +393,7 @@ async function main() {
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("  Roni OS — Booting");
   console.log(
-    `  Node ${process.version} · ${IS_DEV ? "DEV" : "PROD"} · SEA=${IS_SEA}`
+    `  Node ${process.version} · ${FLAGS.isDev ? "DEV" : "PROD"} · SEA=${IS_SEA}`
   );
   console.log(`  argv[0]: ${process.argv[0]}`);
   console.log(`  execPath: ${process.execPath}`);
@@ -393,7 +405,7 @@ async function main() {
   await kernel.start();
 
   let port = config.compositor?.port ?? 7700;
-  if (!IS_DEV) {
+  if (!FLAGS.isDev) {
     port = await startCompositorServer(config);
   } else {
     console.log("[boot] DEV mode — open http://localhost:5173");
