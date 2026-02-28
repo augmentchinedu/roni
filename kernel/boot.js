@@ -36,6 +36,34 @@ if (IS_SEA) {
 
 const IS_DEV = process.argv.includes("--dev");
 
+// On Windows SEA builds, relaunch the kernel in a hidden detached process so
+// the bootstrap console/taskbar entry disappears and Chromium is the only
+// visible app icon after startup.
+function relaunchBackgroundKernelIfNeeded() {
+  const shouldRelaunch =
+    process.platform === "win32" &&
+    IS_SEA &&
+    !IS_DEV &&
+    process.env.RONI_BACKGROUND_KERNEL !== "1";
+
+  if (!shouldRelaunch) return;
+
+  const child = spawn(process.execPath, process.argv.slice(1), {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: true,
+    env: {
+      ...process.env,
+      RONI_BACKGROUND_KERNEL: "1",
+    },
+  });
+
+  child.unref();
+  process.exit(0);
+}
+
+relaunchBackgroundKernelIfNeeded();
+
 // ── Config ────────────────────────────────────────────────────────────────────
 
 function loadConfig() {
