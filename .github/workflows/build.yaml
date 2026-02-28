@@ -3,7 +3,7 @@ name: Build Roni
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ["v*"]
   pull_request:
     branches: [main]
 
@@ -38,7 +38,6 @@ jobs:
           name: bundle
           path: bundle.cjs
           retention-days: 1
-
 
   # ── Linux ─────────────────────────────────────────────────────────────────
   build-linux:
