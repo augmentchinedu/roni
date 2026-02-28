@@ -4,12 +4,10 @@
 
 import {
   readFileSync,
-  writeFileSync,
   existsSync,
   createReadStream,
 } from "node:fs";
-import { tmpdir } from "node:os";
-import { spawn, execSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { resolve, dirname, join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,39 +20,36 @@ import { SessionService } from "./auth/session.js";
 import { compositorFiles as EMBEDDED_COMPOSITOR } from "roni:compositor";
 
 // ── ROOT resolution ───────────────────────────────────────────────────────────
-// SEA detection: in a bundled CJS SEA, import.meta.url is the exe path (not file:)
-// process.argv[0] is always the actual running exe on all platforms.
-const IS_SEA = !import.meta.url?.startsWith("file:");
+const FLAGS = {
+  isDev: process.argv.includes("--dev"),
+  isBackground: process.env.RONI_BACKGROUND === "1",
+  isNodeBinary: /(^|[\/])node(\.exe)?$/i.test(process.execPath),
+};
+const IS_SEA =
+  !FLAGS.isDev && !FLAGS.isNodeBinary && process.argv[0] === process.execPath;
+
 let ROOT;
+const RUNTIME = { chromium: null };
+
 if (IS_SEA) {
-  // argv[0] = full exe path e.g. C:\Users\Augment\Downloads\roni.exe
-  ROOT = dirname(resolve(process.argv[0]));
+  ROOT = dirname(resolve(process.execPath));
 } else {
   // Dev: kernel/boot.js → go up one level to project root
   ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 }
 
-const IS_DEV = process.argv.includes("--dev");
-
-// On Windows SEA builds, relaunch the kernel in a hidden detached process so
-// the bootstrap console/taskbar entry disappears and Chromium is the only
-// visible app icon after startup.
-function relaunchBackgroundKernelIfNeeded() {
-  const shouldRelaunch =
-    process.platform === "win32" &&
-    IS_SEA &&
-    !IS_DEV &&
-    process.env.RONI_BACKGROUND_KERNEL !== "1";
+function relaunchBackgroundIfNeeded() {
+  const shouldRelaunch = IS_SEA && !FLAGS.isDev && !FLAGS.isBackground;
 
   if (!shouldRelaunch) return;
 
   const child = spawn(process.execPath, process.argv.slice(1), {
     detached: true,
     stdio: "ignore",
-    windowsHide: true,
+    windowsHide: process.platform === "win32",
     env: {
       ...process.env,
-      RONI_BACKGROUND_KERNEL: "1",
+      RONI_BACKGROUND: "1",
     },
   });
 
@@ -62,7 +57,47 @@ function relaunchBackgroundKernelIfNeeded() {
   process.exit(0);
 }
 
-relaunchBackgroundKernelIfNeeded();
+relaunchBackgroundIfNeeded();
+
+async function startSystemTrayIfAvailable(runtime) {
+  if (FLAGS.isDev) return null;
+
+  try {
+    const { SysTray } = await import("node-systray");
+    const trayIcon =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+AP9KobjigAAAABJRU5ErkJggg==";
+
+    const systray = new SysTray({
+      menu: {
+        icon: trayIcon,
+        title: "Roni",
+        tooltip: "Roni OS",
+        items: [
+          { title: "Restart Chromium", tooltip: "Restart Chromium", enabled: true },
+          { title: "Quit Roni", tooltip: "Quit", enabled: true },
+        ],
+      },
+      debug: false,
+      copyDir: true,
+    });
+
+    systray.onClick(({ item }) => {
+      if (!item?.title) return;
+      if (item.title === "Restart Chromium" && runtime.chromium) {
+        runtime.chromium.kill();
+        return;
+      }
+      if (item.title === "Quit Roni") {
+        process.exit(0);
+      }
+    });
+
+    return systray;
+  } catch (err) {
+    console.warn(`[boot] node-systray unavailable: ${err.message}`);
+    return null;
+  }
+}
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -181,7 +216,7 @@ function findChromium(config) {
 }
 
 function buildChromiumArgs(config, port) {
-  const url = IS_DEV
+  const url = FLAGS.isDev
     ? `http://localhost:${config.compositor?.devPort ?? 5173}`
     : `http://localhost:${port}`;
   const isWin = process.platform === "win32";
@@ -210,11 +245,11 @@ function buildChromiumArgs(config, port) {
 
   // Remove --no-startup-window and use kiosk only on non-dev
   args.pop();
-  if (!IS_DEV) {
+  if (!FLAGS.isDev) {
     args.push("--kiosk");
   }
   if (!isWin) args.push("--class=Roni", "--name=Roni");
-  if (!IS_DEV && !isWin && !isMac) {
+  if (!FLAGS.isDev && !isWin && !isMac) {
     const p = config.display?.platform ?? "wayland";
     args.push(`--ozone-platform=${p}`);
     if (p === "drm")
@@ -234,28 +269,32 @@ function spawnChromium(config, port) {
   }
   const args = buildChromiumArgs(config, port);
   console.log(`[boot] Launching: ${bin.split(/[/\\]/).pop()} ${args[0]}`);
+  const isWin = process.platform === "win32";
   const child = spawn(bin, args, {
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: isWin ? "ignore" : ["ignore", "pipe", "pipe"],
     env: { ...process.env, ...(process.env.DISPLAY ? {} : { DISPLAY: ":0" }) },
     detached: false,
-    windowsHide: false,
+    windowsHide: isWin,
   });
-  child.stdout.on("data", (d) => process.stdout.write(`[chromium] ${d}`));
-  child.stderr.on("data", (d) => {
-    const msg = d.toString();
-    if (
-      [
-        "Failed to connect",
-        "Missing X server",
-        "MESA",
-        "dri",
-        "DevTools",
-        "Gtk",
-      ].some((s) => msg.includes(s))
-    )
-      return;
-    process.stderr.write(`[chromium:err] ${msg}`);
-  });
+  if (!isWin) {
+    child.stdout.on("data", (d) => process.stdout.write(`[chromium] ${d}`));
+    child.stderr.on("data", (d) => {
+      const msg = d.toString();
+      if (
+        [
+          "Failed to connect",
+          "Missing X server",
+          "MESA",
+          "dri",
+          "DevTools",
+          "Gtk",
+        ].some((s) => msg.includes(s))
+      )
+        return;
+      process.stderr.write(`[chromium:err] ${msg}`);
+    });
+  }
+  RUNTIME.chromium = child;
   const spawnTime = Date.now();
 
   child.on("exit", (code, signal) => {
@@ -271,10 +310,14 @@ function spawnChromium(config, port) {
         "[boot] Chrome exited in under 3s. Is another Roni already running?"
       );
       console.error("[boot] Retrying in 3s with fresh profile...");
-      setTimeout(() => spawnChromium(config, port), 3000);
+      setTimeout(() => {
+        RUNTIME.chromium = spawnChromium(config, port);
+      }, 3000);
     } else if (code !== 0 && code !== null) {
       console.log("[boot] Chrome crashed — restarting in 2s...");
-      setTimeout(() => spawnChromium(config, port), 2000);
+      setTimeout(() => {
+        RUNTIME.chromium = spawnChromium(config, port);
+      }, 2000);
     } else {
       // Clean exit after normal use — user closed the window
       console.log("[boot] Chrome closed cleanly. Shutting down.");
@@ -283,7 +326,9 @@ function spawnChromium(config, port) {
   });
   child.on("error", (err) => {
     console.error(`[boot] Chrome launch failed: ${err.message}`);
-    setTimeout(() => spawnChromium(config, port), 3000);
+    setTimeout(() => {
+      RUNTIME.chromium = spawnChromium(config, port);
+    }, 3000);
   });
   return child;
 }
@@ -365,39 +410,10 @@ function startCompositorServer(config) {
 
 async function main() {
   process.title = "Roni";
-
-  // On Windows SEA: relaunch via wscript with windowStyle=0 (hidden console).
-  // --no-hide prevents the relaunched copy from repeating this.
-  if (
-    process.platform === "win32" &&
-    IS_SEA &&
-    !process.argv.includes("--no-hide")
-  ) {
-    try {
-      const vbsPath = join(tmpdir(), "roni-hide.vbs");
-      const exeArgs = [process.argv[0], "--no-hide", ...process.argv.slice(2)]
-        .map((a) => '"' + a.replace(/"/g, '""') + '"')
-        .join(" ");
-      writeFileSync(
-        vbsPath,
-        'Set sh = CreateObject("WScript.Shell")\r\n' +
-          "sh.Run " +
-          JSON.stringify(exeArgs) +
-          ", 0, False\r\n"
-      );
-      spawn("wscript.exe", [vbsPath], {
-        detached: true,
-        stdio: "ignore",
-      }).unref();
-      process.exit(0);
-    } catch {
-      /* non-fatal — app runs with visible console */
-    }
-  }
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("  Roni OS — Booting");
   console.log(
-    `  Node ${process.version} · ${IS_DEV ? "DEV" : "PROD"} · SEA=${IS_SEA}`
+    `  Node ${process.version} · ${FLAGS.isDev ? "DEV" : "PROD"} · SEA=${IS_SEA}`
   );
   console.log(`  argv[0]: ${process.argv[0]}`);
   console.log(`  execPath: ${process.execPath}`);
@@ -409,13 +425,14 @@ async function main() {
   await kernel.start();
 
   let port = config.compositor?.port ?? 7700;
-  if (!IS_DEV) {
+  if (!FLAGS.isDev) {
     port = await startCompositorServer(config);
   } else {
     console.log("[boot] DEV mode — open http://localhost:5173");
   }
 
-  spawnChromium(config, port);
+  RUNTIME.chromium = spawnChromium(config, port);
+  await startSystemTrayIfAvailable(RUNTIME);
 
   // Keep the event loop alive — the HTTP server and Chrome process do this
   // naturally, but be explicit for SEA on Windows
