@@ -4,11 +4,9 @@
 
 import {
   readFileSync,
-  writeFileSync,
   existsSync,
   createReadStream,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { spawn, execSync } from "node:child_process";
 import { createServer } from "node:http";
 import { resolve, dirname, join, extname } from "node:path";
@@ -36,25 +34,25 @@ if (IS_SEA) {
 
 const IS_DEV = process.argv.includes("--dev");
 
-// On Windows SEA builds, relaunch the kernel in a hidden detached process so
-// the bootstrap console/taskbar entry disappears and Chromium is the only
-// visible app icon after startup.
-function relaunchBackgroundKernelIfNeeded() {
+const IS_BACKGROUND = process.env.RONI_BACKGROUND === "1";
+let chromiumProcess = null;
+
+
+function relaunchBackgroundIfNeeded() {
   const shouldRelaunch =
-    process.platform === "win32" &&
+    (process.platform === "darwin" || process.platform === "linux") &&
     IS_SEA &&
     !IS_DEV &&
-    process.env.RONI_BACKGROUND_KERNEL !== "1";
+    !IS_BACKGROUND;
 
   if (!shouldRelaunch) return;
 
   const child = spawn(process.execPath, process.argv.slice(1), {
     detached: true,
     stdio: "ignore",
-    windowsHide: true,
     env: {
       ...process.env,
-      RONI_BACKGROUND_KERNEL: "1",
+      RONI_BACKGROUND: "1",
     },
   });
 
@@ -62,7 +60,66 @@ function relaunchBackgroundKernelIfNeeded() {
   process.exit(0);
 }
 
-relaunchBackgroundKernelIfNeeded();
+// On Windows SEA builds, hide this process console window in-place.
+// This avoids creating a second bootstrap process that can leave an extra
+// taskbar entry while still keeping Chromium as the only visible window.
+function hideWindowsConsoleIfNeeded() {
+  const shouldHide = process.platform === "win32" && IS_SEA && !IS_DEV;
+  if (!shouldHide) return;
+
+  try {
+    execSync(
+      `powershell -NoProfile -ExecutionPolicy Bypass -Command "$sig='[DllImport(\"kernel32.dll\")]public static extern System.IntPtr GetConsoleWindow();[DllImport(\"user32.dll\")]public static extern bool ShowWindow(System.IntPtr hWnd,int nCmdShow);';Add-Type -Name Win32 -Namespace Roni -MemberDefinition $sig | Out-Null;$h=[Roni.Win32]::GetConsoleWindow();if($h -ne [System.IntPtr]::Zero){ [Roni.Win32]::ShowWindow($h,0) | Out-Null }"`,
+      { stdio: "ignore", windowsHide: true }
+    );
+  } catch {
+    // Non-fatal fallback: continue with visible console if hiding fails.
+  }
+}
+
+relaunchBackgroundIfNeeded();
+hideWindowsConsoleIfNeeded();
+
+
+async function startSystemTrayIfAvailable() {
+  if (IS_DEV) return null;
+
+  try {
+    const { SysTray } = await import("node-systray");
+    const trayIcon =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+AP9KobjigAAAABJRU5ErkJggg==";
+
+    const systray = new SysTray({
+      menu: {
+        icon: trayIcon,
+        title: "Roni",
+        tooltip: "Roni OS",
+        items: [
+          { title: "Restart Chromium", tooltip: "Restart Chromium", enabled: true },
+          { title: "Quit Roni", tooltip: "Quit", enabled: true },
+        ],
+      },
+      debug: false,
+      copyDir: true,
+    });
+
+    systray.onClick(({ item }) => {
+      if (!item?.title) return;
+      if (item.title === "Restart Chromium" && chromiumProcess) {
+        chromiumProcess.kill();
+        return;
+      }
+      if (item.title === "Quit Roni") {
+        process.exit(0);
+      }
+    });
+
+    return systray;
+  } catch (err) {
+    console.warn(`[boot] node-systray unavailable: ${err.message}`);
+    return null;
+  }
+}
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -234,28 +291,31 @@ function spawnChromium(config, port) {
   }
   const args = buildChromiumArgs(config, port);
   console.log(`[boot] Launching: ${bin.split(/[/\\]/).pop()} ${args[0]}`);
+  const isWin = process.platform === "win32";
   const child = spawn(bin, args, {
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: isWin ? "ignore" : ["ignore", "pipe", "pipe"],
     env: { ...process.env, ...(process.env.DISPLAY ? {} : { DISPLAY: ":0" }) },
     detached: false,
-    windowsHide: false,
+    windowsHide: isWin,
   });
-  child.stdout.on("data", (d) => process.stdout.write(`[chromium] ${d}`));
-  child.stderr.on("data", (d) => {
-    const msg = d.toString();
-    if (
-      [
-        "Failed to connect",
-        "Missing X server",
-        "MESA",
-        "dri",
-        "DevTools",
-        "Gtk",
-      ].some((s) => msg.includes(s))
-    )
-      return;
-    process.stderr.write(`[chromium:err] ${msg}`);
-  });
+  if (!isWin) {
+    child.stdout.on("data", (d) => process.stdout.write(`[chromium] ${d}`));
+    child.stderr.on("data", (d) => {
+      const msg = d.toString();
+      if (
+        [
+          "Failed to connect",
+          "Missing X server",
+          "MESA",
+          "dri",
+          "DevTools",
+          "Gtk",
+        ].some((s) => msg.includes(s))
+      )
+        return;
+      process.stderr.write(`[chromium:err] ${msg}`);
+    });
+  }
   const spawnTime = Date.now();
 
   child.on("exit", (code, signal) => {
@@ -365,35 +425,6 @@ function startCompositorServer(config) {
 
 async function main() {
   process.title = "Roni";
-
-  // On Windows SEA: relaunch via wscript with windowStyle=0 (hidden console).
-  // --no-hide prevents the relaunched copy from repeating this.
-  if (
-    process.platform === "win32" &&
-    IS_SEA &&
-    !process.argv.includes("--no-hide")
-  ) {
-    try {
-      const vbsPath = join(tmpdir(), "roni-hide.vbs");
-      const exeArgs = [process.argv[0], "--no-hide", ...process.argv.slice(2)]
-        .map((a) => '"' + a.replace(/"/g, '""') + '"')
-        .join(" ");
-      writeFileSync(
-        vbsPath,
-        'Set sh = CreateObject("WScript.Shell")\r\n' +
-          "sh.Run " +
-          JSON.stringify(exeArgs) +
-          ", 0, False\r\n"
-      );
-      spawn("wscript.exe", [vbsPath], {
-        detached: true,
-        stdio: "ignore",
-      }).unref();
-      process.exit(0);
-    } catch {
-      /* non-fatal — app runs with visible console */
-    }
-  }
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("  Roni OS — Booting");
   console.log(
@@ -415,7 +446,8 @@ async function main() {
     console.log("[boot] DEV mode — open http://localhost:5173");
   }
 
-  spawnChromium(config, port);
+  chromiumProcess = spawnChromium(config, port);
+  await startSystemTrayIfAvailable();
 
   // Keep the event loop alive — the HTTP server and Chrome process do this
   // naturally, but be explicit for SEA on Windows
