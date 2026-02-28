@@ -36,33 +36,45 @@ if (IS_SEA) {
 
 const IS_DEV = process.argv.includes("--dev");
 
-// On Windows SEA builds, relaunch the kernel in a hidden detached process so
-// the bootstrap console/taskbar entry disappears and Chromium is the only
-// visible app icon after startup.
-function relaunchBackgroundKernelIfNeeded() {
+// On Windows SEA builds, relaunch the executable through wscript using
+// windowStyle=0 to hide the console host entirely. This avoids a terminal
+// taskbar entry and leaves Chromium as the only visible app icon.
+function relaunchHiddenOnWindowsIfNeeded() {
   const shouldRelaunch =
     process.platform === "win32" &&
     IS_SEA &&
     !IS_DEV &&
-    process.env.RONI_BACKGROUND_KERNEL !== "1";
+    !process.argv.includes("--hidden-launch");
 
   if (!shouldRelaunch) return;
 
-  const child = spawn(process.execPath, process.argv.slice(1), {
-    detached: true,
-    stdio: "ignore",
-    windowsHide: true,
-    env: {
-      ...process.env,
-      RONI_BACKGROUND_KERNEL: "1",
-    },
-  });
+  try {
+    const vbsPath = join(tmpdir(), "roni-hide.vbs");
+    const exeArgs = [process.argv[0], "--hidden-launch", ...process.argv.slice(2)]
+      .map((a) => '"' + a.replace(/"/g, '""') + '"')
+      .join(" ");
 
-  child.unref();
-  process.exit(0);
+    writeFileSync(
+      vbsPath,
+      'Set sh = CreateObject("WScript.Shell")\r\n' +
+        "sh.Run " +
+        JSON.stringify(exeArgs) +
+        ", 0, False\r\n"
+    );
+
+    spawn("wscript.exe", [vbsPath], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    }).unref();
+
+    process.exit(0);
+  } catch {
+    // Non-fatal fallback: continue with direct launch.
+  }
 }
 
-relaunchBackgroundKernelIfNeeded();
+relaunchHiddenOnWindowsIfNeeded();
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -234,28 +246,31 @@ function spawnChromium(config, port) {
   }
   const args = buildChromiumArgs(config, port);
   console.log(`[boot] Launching: ${bin.split(/[/\\]/).pop()} ${args[0]}`);
+  const isWin = process.platform === "win32";
   const child = spawn(bin, args, {
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: isWin ? "ignore" : ["ignore", "pipe", "pipe"],
     env: { ...process.env, ...(process.env.DISPLAY ? {} : { DISPLAY: ":0" }) },
     detached: false,
-    windowsHide: false,
+    windowsHide: isWin,
   });
-  child.stdout.on("data", (d) => process.stdout.write(`[chromium] ${d}`));
-  child.stderr.on("data", (d) => {
-    const msg = d.toString();
-    if (
-      [
-        "Failed to connect",
-        "Missing X server",
-        "MESA",
-        "dri",
-        "DevTools",
-        "Gtk",
-      ].some((s) => msg.includes(s))
-    )
-      return;
-    process.stderr.write(`[chromium:err] ${msg}`);
-  });
+  if (!isWin) {
+    child.stdout.on("data", (d) => process.stdout.write(`[chromium] ${d}`));
+    child.stderr.on("data", (d) => {
+      const msg = d.toString();
+      if (
+        [
+          "Failed to connect",
+          "Missing X server",
+          "MESA",
+          "dri",
+          "DevTools",
+          "Gtk",
+        ].some((s) => msg.includes(s))
+      )
+        return;
+      process.stderr.write(`[chromium:err] ${msg}`);
+    });
+  }
   const spawnTime = Date.now();
 
   child.on("exit", (code, signal) => {
@@ -365,35 +380,6 @@ function startCompositorServer(config) {
 
 async function main() {
   process.title = "Roni";
-
-  // On Windows SEA: relaunch via wscript with windowStyle=0 (hidden console).
-  // --no-hide prevents the relaunched copy from repeating this.
-  if (
-    process.platform === "win32" &&
-    IS_SEA &&
-    !process.argv.includes("--no-hide")
-  ) {
-    try {
-      const vbsPath = join(tmpdir(), "roni-hide.vbs");
-      const exeArgs = [process.argv[0], "--no-hide", ...process.argv.slice(2)]
-        .map((a) => '"' + a.replace(/"/g, '""') + '"')
-        .join(" ");
-      writeFileSync(
-        vbsPath,
-        'Set sh = CreateObject("WScript.Shell")\r\n' +
-          "sh.Run " +
-          JSON.stringify(exeArgs) +
-          ", 0, False\r\n"
-      );
-      spawn("wscript.exe", [vbsPath], {
-        detached: true,
-        stdio: "ignore",
-      }).unref();
-      process.exit(0);
-    } catch {
-      /* non-fatal — app runs with visible console */
-    }
-  }
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("  Roni OS — Booting");
   console.log(
