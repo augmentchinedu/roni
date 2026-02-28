@@ -34,24 +34,45 @@ if (IS_SEA) {
 
 const IS_DEV = process.argv.includes("--dev");
 
-// On Windows SEA builds, hide this process console window in-place.
-// This avoids creating a second bootstrap process that can leave an extra
-// taskbar entry while still keeping Chromium as the only visible window.
-function hideWindowsConsoleIfNeeded() {
-  const shouldHide = process.platform === "win32" && IS_SEA && !IS_DEV;
-  if (!shouldHide) return;
+// On Windows SEA builds, relaunch the executable through wscript using
+// windowStyle=0 to hide the console host entirely. This avoids a terminal
+// taskbar entry and leaves Chromium as the only visible app icon.
+function relaunchHiddenOnWindowsIfNeeded() {
+  const shouldRelaunch =
+    process.platform === "win32" &&
+    IS_SEA &&
+    !IS_DEV &&
+    !process.argv.includes("--hidden-launch");
+
+  if (!shouldRelaunch) return;
 
   try {
-    execSync(
-      `powershell -NoProfile -ExecutionPolicy Bypass -Command "$sig='[DllImport(\"kernel32.dll\")]public static extern System.IntPtr GetConsoleWindow();[DllImport(\"user32.dll\")]public static extern bool ShowWindow(System.IntPtr hWnd,int nCmdShow);';Add-Type -Name Win32 -Namespace Roni -MemberDefinition $sig | Out-Null;$h=[Roni.Win32]::GetConsoleWindow();if($h -ne [System.IntPtr]::Zero){ [Roni.Win32]::ShowWindow($h,0) | Out-Null }"`,
-      { stdio: "ignore", windowsHide: true }
+    const vbsPath = join(tmpdir(), "roni-hide.vbs");
+    const exeArgs = [process.argv[0], "--hidden-launch", ...process.argv.slice(2)]
+      .map((a) => '"' + a.replace(/"/g, '""') + '"')
+      .join(" ");
+
+    writeFileSync(
+      vbsPath,
+      'Set sh = CreateObject("WScript.Shell")\r\n' +
+        "sh.Run " +
+        JSON.stringify(exeArgs) +
+        ", 0, False\r\n"
     );
+
+    spawn("wscript.exe", [vbsPath], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    }).unref();
+
+    process.exit(0);
   } catch {
-    // Non-fatal fallback: continue with visible console if hiding fails.
+    // Non-fatal fallback: continue with direct launch.
   }
 }
 
-hideWindowsConsoleIfNeeded();
+relaunchHiddenOnWindowsIfNeeded();
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
