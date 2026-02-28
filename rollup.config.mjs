@@ -129,6 +129,7 @@ export default {
     "perf_hooks",
     "inspector",
     "module",
+    "node-systray",
   ],
 
   plugins: [
