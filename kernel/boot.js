@@ -20,13 +20,16 @@ import { SessionService } from "./auth/session.js";
 import { compositorFiles as EMBEDDED_COMPOSITOR } from "roni:compositor";
 
 // ── ROOT resolution ───────────────────────────────────────────────────────────
-// SEA detection: in a bundled CJS SEA, import.meta.url is the exe path (not file:)
-// process.argv[0] is always the actual running exe on all platforms.
-const IS_SEA = !import.meta.url?.startsWith("file:");
+const IS_DEV = process.argv.includes("--dev");
+const IS_BACKGROUND = process.env.RONI_BACKGROUND === "1";
+const IS_NODE_BINARY = /(^|[\/])node(\.exe)?$/i.test(process.execPath);
+const IS_SEA = !IS_DEV && !IS_NODE_BINARY && process.argv[0] === process.execPath;
+
 let ROOT;
+const RUNTIME = { chromium: null };
+
 if (IS_SEA) {
-  // argv[0] = full exe path e.g. C:\Users\Augment\Downloads\roni.exe
-  ROOT = dirname(resolve(process.argv[0]));
+  ROOT = dirname(resolve(process.execPath));
 } else {
   // Dev: kernel/boot.js → go up one level to project root
   ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -284,10 +287,14 @@ function spawnChromium(config, port) {
         "[boot] Chrome exited in under 3s. Is another Roni already running?"
       );
       console.error("[boot] Retrying in 3s with fresh profile...");
-      setTimeout(() => spawnChromium(config, port), 3000);
+      setTimeout(() => {
+        RUNTIME.chromium = spawnChromium(config, port);
+      }, 3000);
     } else if (code !== 0 && code !== null) {
       console.log("[boot] Chrome crashed — restarting in 2s...");
-      setTimeout(() => spawnChromium(config, port), 2000);
+      setTimeout(() => {
+        RUNTIME.chromium = spawnChromium(config, port);
+      }, 2000);
     } else {
       // Clean exit after normal use — user closed the window
       console.log("[boot] Chrome closed cleanly. Shutting down.");
@@ -296,7 +303,9 @@ function spawnChromium(config, port) {
   });
   child.on("error", (err) => {
     console.error(`[boot] Chrome launch failed: ${err.message}`);
-    setTimeout(() => spawnChromium(config, port), 3000);
+    setTimeout(() => {
+      RUNTIME.chromium = spawnChromium(config, port);
+    }, 3000);
   });
   return child;
 }
