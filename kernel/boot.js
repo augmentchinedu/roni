@@ -16,20 +16,16 @@ import { SessionService } from './auth/session.js';
 import { compositorFiles as EMBEDDED_COMPOSITOR } from 'roni:compositor';
 
 // ── ROOT resolution ───────────────────────────────────────────────────────────
-// In a SEA, import.meta.url is NOT a file: URL — it's the exe path.
-// process.argv[0] is always the actual exe path on all platforms.
-// We detect SEA by checking if import.meta.url starts with 'file:'.
+// SEA detection: in a bundled CJS SEA, import.meta.url is the exe path (not file:)
+// process.argv[0] is always the actual running exe on all platforms.
+const IS_SEA = !import.meta.url?.startsWith('file:');
 let ROOT;
-try {
-  const url = import.meta.url;
-  if (url && url.startsWith('file:')) {
-    ROOT = resolve(dirname(fileURLToPath(url)), '..');
-  } else {
-    throw new Error('not a file URL');
-  }
-} catch {
-  // SEA mode: argv[0] is the exe, ROOT is its directory
+if (IS_SEA) {
+  // argv[0] = full exe path e.g. C:\Users\Augment\Downloads\roni.exe
   ROOT = dirname(resolve(process.argv[0]));
+} else {
+  // Dev: kernel/boot.js → go up one level to project root
+  ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 }
 
 const IS_DEV = process.argv.includes('--dev');
@@ -137,11 +133,23 @@ function buildChromiumArgs(config, port) {
     : `http://localhost:${port}`;
   const isWin = process.platform === 'win32';
   const isMac = process.platform === 'darwin';
+  // --user-data-dir forces Chrome to launch a new isolated instance
+  // instead of handing off to an existing Chrome process ("Opening in existing browser session")
+  const userDataDir = join(ROOT, '.roni-chrome-profile');
+
   const args = [
-    `--app=${url}`, '--start-fullscreen', '--disable-infobars',
-    '--no-first-run', '--no-default-browser-check',
-    '--disable-translate', '--disable-features=TranslateUI',
-    '--noerrdialogs', '--kiosk',
+    `--app=${url}`,
+    `--user-data-dir=${userDataDir}`,
+    '--start-fullscreen',
+    '--disable-infobars',
+    '--no-first-run',
+    '--no-default-browser-check',
+    '--disable-translate',
+    '--disable-features=TranslateUI',
+    '--noerrdialogs',
+    '--kiosk',
+    '--disable-session-crashed-bubble',
+    '--disable-background-networking',
   ];
   if (!isWin) args.push('--class=Roni', '--name=Roni');
   if (!IS_DEV && !isWin && !isMac) {
@@ -173,12 +181,24 @@ function spawnChromium(config, port) {
     if (['Failed to connect','Missing X server','MESA','dri','DevTools','Gtk'].some(s => msg.includes(s))) return;
     process.stderr.write(`[chromium:err] ${msg}`);
   });
+  const spawnTime = Date.now();
+
   child.on('exit', (code, signal) => {
-    console.warn(`[boot] Chromium exited (code=${code} signal=${signal})`);
-    if (code !== 0 && code !== null) {
-      console.log('[boot] Restarting in 2s...');
+    const uptime = Date.now() - spawnTime;
+    console.warn(`[boot] Chromium exited (code=${code} signal=${signal} uptime=${uptime}ms)`);
+
+    if (uptime < 3000) {
+      // Exited too fast — likely "Opening in existing browser session" handoff
+      // This means --user-data-dir wasn't respected or Chrome found a running instance
+      console.error('[boot] Chrome exited in under 3s. Is another Roni already running?');
+      console.error('[boot] Retrying in 3s with fresh profile...');
+      setTimeout(() => spawnChromium(config, port), 3000);
+    } else if (code !== 0 && code !== null) {
+      console.log('[boot] Chrome crashed — restarting in 2s...');
       setTimeout(() => spawnChromium(config, port), 2000);
     } else {
+      // Clean exit after normal use — user closed the window
+      console.log('[boot] Chrome closed cleanly. Shutting down.');
       process.exit(0);
     }
   });
