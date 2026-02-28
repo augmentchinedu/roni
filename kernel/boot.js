@@ -13,6 +13,7 @@ import { ProcessManager } from './proc/manager.js';
 import { DisplayService } from './hw/display.js';
 import { PowerService } from './power/manager.js';
 import { SessionService } from './auth/session.js';
+import { compositorFiles as EMBEDDED_COMPOSITOR } from 'roni:compositor';
 
 // ── ROOT resolution ───────────────────────────────────────────────────────────
 // In a SEA, import.meta.url is NOT a file: URL — it's the exe path.
@@ -196,9 +197,6 @@ const MIME = {
   '.png':'image/png', '.ico':'image/x-icon', '.woff2':'font/woff2', '.ttf':'font/ttf',
 };
 
-// __COMPOSITOR_EMBED_START__
-const EMBEDDED_COMPOSITOR = null; // replaced by embed-compositor.mjs at build time
-// __COMPOSITOR_EMBED_END__
 
 function startCompositorServer(config) {
   const port = config.compositor?.port ?? 7700;
