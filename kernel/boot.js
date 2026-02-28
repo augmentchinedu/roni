@@ -7,7 +7,7 @@ import {
   existsSync,
   createReadStream,
 } from "node:fs";
-import { spawn } from "node:child_process";
+import { spawn, execSync } from "node:child_process";
 import { createServer } from "node:http";
 import { resolve, dirname, join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,7 +30,6 @@ const IS_SEA =
 
 let ROOT;
 const RUNTIME = { chromium: null };
-let chromiumProcess = null; // compatibility alias for older bundle references
 
 if (IS_SEA) {
   ROOT = dirname(resolve(process.execPath));
@@ -39,67 +38,47 @@ if (IS_SEA) {
   ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 }
 
-function relaunchBackgroundIfNeeded() {
-  const shouldRelaunch = IS_SEA && !FLAGS.isDev && !FLAGS.isBackground;
+const IS_DEV = process.argv.includes("--dev");
+
+// On Windows SEA builds, relaunch the executable through wscript using
+// windowStyle=0 to hide the console host entirely. This avoids a terminal
+// taskbar entry and leaves Chromium as the only visible app icon.
+function relaunchHiddenOnWindowsIfNeeded() {
+  const shouldRelaunch =
+    (process.platform === "darwin" || process.platform === "linux") &&
+    IS_SEA &&
+    !IS_DEV &&
+    !process.argv.includes("--hidden-launch");
 
   if (!shouldRelaunch) return;
 
-  const child = spawn(process.execPath, process.argv.slice(1), {
-    detached: true,
-    stdio: "ignore",
-    windowsHide: process.platform === "win32",
-    env: {
-      ...process.env,
-      RONI_BACKGROUND: "1",
-    },
-  });
-
-  child.unref();
-  process.exit(0);
-}
-
-relaunchBackgroundIfNeeded();
-
-async function startSystemTrayIfAvailable(runtime) {
-  if (FLAGS.isDev) return null;
-
   try {
-    const { SysTray } = await import("node-systray");
-    const trayIcon =
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+AP9KobjigAAAABJRU5ErkJggg==";
+    const vbsPath = join(tmpdir(), "roni-hide.vbs");
+    const exeArgs = [process.argv[0], "--hidden-launch", ...process.argv.slice(2)]
+      .map((a) => '"' + a.replace(/"/g, '""') + '"')
+      .join(" ");
 
-    const systray = new SysTray({
-      menu: {
-        icon: trayIcon,
-        title: "Roni",
-        tooltip: "Roni OS",
-        items: [
-          { title: "Restart Chromium", tooltip: "Restart Chromium", enabled: true },
-          { title: "Quit Roni", tooltip: "Quit", enabled: true },
-        ],
-      },
-      debug: false,
-      copyDir: true,
-    });
+    writeFileSync(
+      vbsPath,
+      'Set sh = CreateObject("WScript.Shell")\r\n' +
+        "sh.Run " +
+        JSON.stringify(exeArgs) +
+        ", 0, False\r\n"
+    );
 
-    systray.onClick(({ item }) => {
-      if (!item?.title) return;
-      const activeChromium = runtime.chromium ?? chromiumProcess;
-      if (item.title === "Restart Chromium" && activeChromium) {
-        activeChromium.kill();
-        return;
-      }
-      if (item.title === "Quit Roni") {
-        process.exit(0);
-      }
-    });
+    spawn("wscript.exe", [vbsPath], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    }).unref();
 
-    return systray;
-  } catch (err) {
-    console.warn(`[boot] node-systray unavailable: ${err.message}`);
-    return null;
+    process.exit(0);
+  } catch {
+    // Non-fatal fallback: continue with direct launch.
   }
 }
+
+relaunchHiddenOnWindowsIfNeeded();
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -296,8 +275,6 @@ function spawnChromium(config, port) {
       process.stderr.write(`[chromium:err] ${msg}`);
     });
   }
-  RUNTIME.chromium = child;
-  chromiumProcess = child;
   const spawnTime = Date.now();
 
   child.on("exit", (code, signal) => {
@@ -315,13 +292,11 @@ function spawnChromium(config, port) {
       console.error("[boot] Retrying in 3s with fresh profile...");
       setTimeout(() => {
         RUNTIME.chromium = spawnChromium(config, port);
-        chromiumProcess = RUNTIME.chromium;
       }, 3000);
     } else if (code !== 0 && code !== null) {
       console.log("[boot] Chrome crashed — restarting in 2s...");
       setTimeout(() => {
         RUNTIME.chromium = spawnChromium(config, port);
-        chromiumProcess = RUNTIME.chromium;
       }, 2000);
     } else {
       // Clean exit after normal use — user closed the window
@@ -333,7 +308,6 @@ function spawnChromium(config, port) {
     console.error(`[boot] Chrome launch failed: ${err.message}`);
     setTimeout(() => {
       RUNTIME.chromium = spawnChromium(config, port);
-      chromiumProcess = RUNTIME.chromium;
     }, 3000);
   });
   return child;
@@ -437,9 +411,8 @@ async function main() {
     console.log("[boot] DEV mode — open http://localhost:5173");
   }
 
-  RUNTIME.chromium = spawnChromium(config, port);
-  chromiumProcess = RUNTIME.chromium;
-  await startSystemTrayIfAvailable(RUNTIME);
+  chromiumProcess = spawnChromium(config, port);
+  await startSystemTrayIfAvailable();
 
   // Keep the event loop alive — the HTTP server and Chrome process do this
   // naturally, but be explicit for SEA on Windows
