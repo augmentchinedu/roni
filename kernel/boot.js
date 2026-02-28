@@ -39,7 +39,7 @@ const IS_DEV = process.argv.includes("--dev");
 // taskbar entry and leaves Chromium as the only visible app icon.
 function relaunchHiddenOnWindowsIfNeeded() {
   const shouldRelaunch =
-    process.platform === "win32" &&
+    (process.platform === "darwin" || process.platform === "linux") &&
     IS_SEA &&
     !IS_DEV &&
     !process.argv.includes("--hidden-launch");
@@ -399,7 +399,8 @@ async function main() {
     console.log("[boot] DEV mode — open http://localhost:5173");
   }
 
-  spawnChromium(config, port);
+  chromiumProcess = spawnChromium(config, port);
+  await startSystemTrayIfAvailable();
 
   // Keep the event loop alive — the HTTP server and Chrome process do this
   // naturally, but be explicit for SEA on Windows
