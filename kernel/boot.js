@@ -45,8 +45,8 @@ let ROOT = IS_SEA
 const RUNTIME = {
   chromium: null,
   instanceLockFd: null,
+  currentPort: null,
 };
-
 /* ─────────────────────────────────────────────── */
 /* SINGLE INSTANCE LOCK                           */
 /* ─────────────────────────────────────────────── */
@@ -151,7 +151,7 @@ function spawnChromium(config, port) {
     process.exit(1);
   }
 
-  CURRENT_PORT = port;
+  RUNTIME.currentPort = port;
 
   const userDataDir = join(ROOT, ".roni-profile");
 
@@ -169,28 +169,16 @@ function spawnChromium(config, port) {
     args.push("--no-sandbox", "--disable-gpu-sandbox");
 
   const child = spawn(bin, args, {
-    detached: false,
     stdio: "ignore",
     windowsHide: true,
   });
 
   child.unref();
 
-  const spawnTime = Date.now();
+  RUNTIME.chromium = child;
 
   child.on("exit", () => {
-    const uptime = Date.now() - spawnTime;
-
-    if (FLAGS.isBackground) return;
-
-    if (uptime < 3000) {
-      setTimeout(() => {
-        RUNTIME.chromium = spawnChromium(config, port);
-      }, 2000);
-      return;
-    }
-
-    process.exit(0);
+    RUNTIME.chromium = null;
   });
 
   return child;
@@ -198,7 +186,9 @@ function spawnChromium(config, port) {
 
 function showChromium(config) {
   if (RUNTIME.chromium) return;
-  RUNTIME.chromium = spawnChromium(config, CURRENT_PORT);
+  if (!RUNTIME.currentPort) return;
+
+  RUNTIME.chromium = spawnChromium(config, RUNTIME.currentPort);
 }
 
 function hideChromium() {
