@@ -44,6 +44,29 @@ if (
   child.unref();
   process.exit(0);
 }
+
+/* ─────────────────────────────────────────────── */
+/* WINDOWS BACKGROUND DETACH                      */
+/* ─────────────────────────────────────────────── */
+
+if (
+  process.platform === "win32" &&
+  !process.env.__RONI_DAEMON__ &&
+  !process.argv.includes("--dev")
+) {
+  const child = spawn(process.execPath, process.argv.slice(1), {
+    detached: true,
+    stdio: "ignore",
+    env: {
+      ...process.env,
+      __RONI_DAEMON__: "1",
+    },
+  });
+
+  child.unref();
+  process.exit(0);
+}
+
 /* ─────────────────────────────────────────────── */
 /* FLAGS & ROOT                                   */
 /* ─────────────────────────────────────────────── */
