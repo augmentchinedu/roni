@@ -80,7 +80,11 @@ jobs:
           # --build-sea on Windows outputs .exe — update config output path
           $config = Get-Content sea-config.json | ConvertFrom-Json
           $config.output = "dist/roni.exe"
-          $config | ConvertTo-Json | Out-File sea-config-win.json -Encoding UTF8
+          # IMPORTANT
+          $config.windows = @{
+            subsystem = "windows"
+          }
+          $config | ConvertTo-Json -Depth 5 | Out-File sea-config-win.json -Encoding UTF8
           node --build-sea sea-config-win.json
           Get-Item dist\roni.exe | Select-Object Name, Length
 
@@ -98,30 +102,70 @@ jobs:
 
   # ── macOS ─────────────────────────────────────────────────────────────────
   build-macos:
-    name: Build macOS
+    name: Build macOS (Background App)
     needs: bundle
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 25
+
       - uses: actions/download-artifact@v4
-        with: { name: bundle, path: . }
+        with:
+          name: bundle
+          path: .
+
+      # ── Build SEA Binary ───────────────────────────────────────────────
       - name: Build SEA
         run: |
           mkdir -p dist
           node --build-sea sea-config.json
-          codesign --sign - dist/roni || true
           chmod +x dist/roni
           ls -lh dist/roni
 
+      # ── Create Minimal Background .app Wrapper ─────────────────────────
+      - name: Create Background App Bundle
+        run: |
+          mkdir -p dist/Roni.app/Contents/MacOS
+
+          # Move binary into app bundle
+          cp dist/roni dist/Roni.app/Contents/MacOS/roni
+          chmod +x dist/Roni.app/Contents/MacOS/roni
+
+          # Create Info.plist with LSUIElement (NO Dock icon)
+          cat > dist/Roni.app/Contents/Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleName</key>
+              <string>Roni</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.roni.os</string>
+              <key>CFBundleExecutable</key>
+              <string>roni</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>LSUIElement</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+
+          # Optional ad-hoc sign (prevents warnings)
+          codesign --force --deep --sign - dist/Roni.app || true
+
+          ls -R dist/Roni.app
+
+      # ── Package Release ────────────────────────────────────────────────
       - name: Assemble release
         run: |
-          mkdir -p release/roni-macos
-          cp dist/roni              release/roni-macos/roni
-          chmod +x release/roni-macos/roni
-          tar -czf roni-macos.tar.gz -C release roni-macos
+          mkdir -p release
+          cp -R dist/Roni.app release/
+          tar -czf roni-macos.tar.gz -C release Roni.app
           ls -lh roni-macos.tar.gz
 
       - uses: actions/upload-artifact@v4

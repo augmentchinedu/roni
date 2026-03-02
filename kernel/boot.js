@@ -15,8 +15,6 @@ import { createServer } from "node:http";
 import { resolve, dirname, join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { createTray } from "./tray.js";
-
 import { Bus } from "./ipc/bus.js";
 import { VFS } from "./fs/vfs.js";
 import { ProcessManager } from "./proc/manager.js";
@@ -24,6 +22,29 @@ import { DisplayService } from "./hw/display.js";
 import { PowerService } from "./power/manager.js";
 import { SessionService } from "./auth/session.js";
 import { compositorFiles as EMBEDDED_COMPOSITOR } from "roni:compositor";
+
+
+/* ─────────────────────────────────────────────── */
+/* LINUX BACKGROUND DAEMONIZE                     */
+/* ─────────────────────────────────────────────── */
+
+if (process.platform === "linux") {
+  if (!process.env.__RONI_DAEMON__) {
+    const { spawn } = await import("node:child_process");
+
+    const child = spawn(process.execPath, process.argv.slice(1), {
+      detached: true,
+      stdio: "ignore",
+      env: {
+        ...process.env,
+        __RONI_DAEMON__: "1",
+      },
+    });
+
+    child.unref();
+    process.exit(0);
+  }
+}
 
 /* ─────────────────────────────────────────────── */
 /* FLAGS & ROOT                                   */
