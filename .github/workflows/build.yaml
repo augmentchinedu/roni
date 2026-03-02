@@ -77,17 +77,14 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          # --build-sea on Windows outputs .exe — update config output path
           $config = Get-Content sea-config.json | ConvertFrom-Json
           $config.output = "dist/roni.exe"
-          # IMPORTANT
-          $config.windows = @{
+          $config | Add-Member -NotePropertyName windows -NotePropertyValue @{
             subsystem = "windows"
           }
           $config | ConvertTo-Json -Depth 5 | Out-File sea-config-win.json -Encoding UTF8
           node --build-sea sea-config-win.json
           Get-Item dist\roni.exe | Select-Object Name, Length
-
       - name: Assemble release
         shell: pwsh
         run: |
