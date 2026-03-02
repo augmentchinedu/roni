@@ -23,29 +23,27 @@ import { PowerService } from "./power/manager.js";
 import { SessionService } from "./auth/session.js";
 import { compositorFiles as EMBEDDED_COMPOSITOR } from "roni:compositor";
 
-
 /* ─────────────────────────────────────────────── */
 /* LINUX BACKGROUND DAEMONIZE                     */
 /* ─────────────────────────────────────────────── */
 
-if (process.platform === "linux") {
-  if (!process.env.__RONI_DAEMON__) {
-    const { spawn } = await import("node:child_process");
+if (
+  process.platform === "linux" &&
+  !process.env.__RONI_DAEMON__ &&
+  !process.argv.includes("--dev")
+) {
+  const child = spawn(process.execPath, process.argv.slice(1), {
+    detached: true,
+    stdio: "ignore",
+    env: {
+      ...process.env,
+      __RONI_DAEMON__: "1",
+    },
+  });
 
-    const child = spawn(process.execPath, process.argv.slice(1), {
-      detached: true,
-      stdio: "ignore",
-      env: {
-        ...process.env,
-        __RONI_DAEMON__: "1",
-      },
-    });
-
-    child.unref();
-    process.exit(0);
-  }
+  child.unref();
+  process.exit(0);
 }
-
 /* ─────────────────────────────────────────────── */
 /* FLAGS & ROOT                                   */
 /* ─────────────────────────────────────────────── */
@@ -290,15 +288,6 @@ async function main() {
   if (!FLAGS.isBackground) {
     RUNTIME.chromium = spawnChromium(config, port);
   }
-
-  // ✅ Create tray on all platforms
-  createTray({
-    onShow: () => showChromium(config),
-    onHide: () => hideChromium(),
-    onExit: () => process.exit(0),
-  });
-
-  setInterval(() => {}, 1 << 30);
 }
 
 main().catch((err) => {
